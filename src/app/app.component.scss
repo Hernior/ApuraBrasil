@@ -1,6 +1,6 @@
 :host { display: flex; flex-direction: column; min-height: 100dvh; }
 .header { padding: 1.5rem max(1rem, calc((100% - 1120px) / 2)); background: #fff; border-bottom: 1px solid #e2e8f0; }
-.brand { font-size: 1.5rem; font-weight: 800; color: #155e75; }
+.brand img { display: block; width: min(300px, 100%); height: auto; }
 .header p { margin: .25rem 0 0; color: #475569; }
 main { width: min(1120px, 100%); padding: 3rem 1rem; margin: 0 auto; flex: 1; }
 .eyebrow { color: #155e75; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }

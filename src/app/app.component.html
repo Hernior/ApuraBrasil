@@ -1,5 +1,5 @@
 <header class="header">
-  <div class="brand">{{ title() }}</div>
+  <div class="brand"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></div>
   <p>Eleições 2026</p>
 </header>
 <main>
@@ -7,16 +7,46 @@
   <h1>Eleições Gerais de 2026</h1>
   <p class="intro">Um espaço para acompanhar a apuração e os resultados oficiais.</p>
   <mat-card appearance="outlined">
-    <mat-card-header><mat-card-title>Resultados eleitorais</mat-card-title></mat-card-header>
-    <mat-card-content>
-    <p class="status">Integração pendente</p>
-    <p>A consulta aos dados de 2026 do Tribunal Superior Eleitoral será disponibilizada na próxima etapa.</p>
-    <p>Nenhum resultado eleitoral foi recebido nesta versão.</p>
-  </mat-card-content>
+    <mat-card-header><mat-card-title>Eleições disponíveis</mat-card-title></mat-card-header>
+    <mat-card-content aria-live="polite" [attr.aria-busy]="elections.loading()">
+      @if (elections.loading()) {
+        <p>Consultando a configuração oficial do TSE…</p>
+      }
+      @if (elections.error(); as error) {
+        <p role="alert">{{ error }}</p>
+      }
+      @if (elections.configuration(); as configuration) {
+        <p>Configuração gerada pelo TSE: {{ configuration.generatedDate }} às {{ configuration.generatedTime }}.</p>
+        @if (configuration.phase === 's') {
+          <p><strong>Ambiente de simulado — não são resultados oficiais.</strong></p>
+        }
+        @for (election of elections.elections(); track election.id) {
+          <article class="election">
+            <h2>{{ election.kind === 'federal' ? 'Eleição federal' : 'Eleição estadual' }} · {{ election.round }}º turno</h2>
+            <p>{{ election.name }}</p>
+            <p>Data: {{ election.date }}</p>
+            <ul>
+              @for (scope of election.scopes; track scope.code) {
+                @for (office of scope.offices; track office.code) {
+                  <li>{{ office.name }} @if (scope.code !== 'br') { ({{ scope.code.toUpperCase() }}) }</li>
+                }
+              }
+            </ul>
+          </article>
+        } @empty {
+          <p>Nenhuma eleição geral federal ou estadual do ciclo de 2026 está disponível nesta configuração.</p>
+        }
+      }
+      <p>A consulta à apuração será disponibilizada na próxima etapa.</p>
+      <p>Nenhum resultado eleitoral foi recebido nesta versão.</p>
+    </mat-card-content>
+    <mat-card-actions>
+      <button matButton="outlined" [disabled]="elections.loading()" (click)="elections.load()">Atualizar eleições</button>
+    </mat-card-actions>
   </mat-card>
 </main>
 <footer>
   <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
   <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização recebida do TSE: ainda não recebida.</p>
+  <p>Última atualização de resultados recebida do TSE: ainda não recebida.</p>
 </footer>

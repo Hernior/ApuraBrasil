@@ -1,21 +1,30 @@
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
+import { ELECTION_DATA_PROVIDER } from './core/api/election-data-provider';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideNoopAnimations()]
+      providers: [
+        provideNoopAnimations(),
+        { provide: ELECTION_DATA_PROVIDER, useValue: { loadConfiguration: async () => ({
+          generatedDate: '04/10/2026', generatedTime: '17:00:00', generationId: '1',
+          phase: 'o', directories: [], elections: []
+        }) } }
+      ]
     }).compileComponents();
   });
 
-  it('renders the brand and a pending state without claiming live results', () => {
+  it('renders discovery without claiming live results', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector('.brand')?.textContent).toContain('ApuraBrasil');
-    expect(element.textContent).toContain('Integração pendente');
+    expect(element.querySelector('.brand img')?.getAttribute('alt')).toBe('ApuraBrasil');
+    expect(element.textContent).toContain('Nenhuma eleição geral');
     expect(element.textContent).toContain('Nenhum resultado eleitoral foi recebido');
     expect(element.textContent).not.toContain('AO VIVO');
   });

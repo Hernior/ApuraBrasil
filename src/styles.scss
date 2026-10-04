@@ -1,11 +1,10 @@
-body {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
-  background-color: #251B37;
-  color: #FFECEF;
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((color: (primary: mat.$cyan-palette, tertiary: mat.$blue-palette), typography: system-ui, density: 0));
+  color-scheme: light;
 }
 
-// #251B37
-// #372948
-// #FFCACA
-// #FFECEF
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
+p { line-height: 1.6; }

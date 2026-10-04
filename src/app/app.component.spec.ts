@@ -1,35 +1,22 @@
 import { TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule
-      ],
-      declarations: [
-        AppComponent
-      ],
+      imports: [AppComponent],
+      providers: [provideNoopAnimations()]
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it(`should have as title 'eleicoes-2022'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('eleicoes-2022');
-  });
-
-  it('should render title', () => {
+  it('renders the brand and a pending state without claiming live results', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('eleicoes-2022 app is running!');
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.brand')?.textContent).toContain('ApuraBrasil');
+    expect(element.textContent).toContain('Integração pendente');
+    expect(element.textContent).toContain('Nenhum resultado eleitoral foi recebido');
+    expect(element.textContent).not.toContain('AO VIVO');
   });
 });

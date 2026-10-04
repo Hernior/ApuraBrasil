@@ -25,7 +25,7 @@ module.exports = function (config) {
       suppressAll: true // removes the duplicated traces
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/eleicoes-2022'),
+      dir: require('path').join(__dirname, './coverage/ApuraBrasil'),
       subdir: '.',
       reporters: [
         { type: 'html' },

@@ -1,30 +1,47 @@
-# Eleicoes2022
+# ApuraBrasil
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.2.4.
+SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não é afiliado ao Tribunal Superior Eleitoral.
 
-## Development server
+## Estado desta entrega
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A tela indica que a integração está pendente. Não há consultas ao TSE nem resultados fictícios.
 
-## Code scaffolding
+Descoberta das eleições, resultados oficiais, polling, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Requisitos e execução
 
-## Build
+Node.js 20.19+, 22.12+ ou 24+ em versões compatíveis com Angular 20; npm.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```bash
+npm install
+npm start
+```
 
-## Running unit tests
+Acesse http://localhost:4200/.
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Testes
 
-## Running end-to-end tests
+```bash
+npm run test:ci
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+Requer Chrome instalado. Para testes interativos, use `npm test`.
 
-## Further help
+## Build e GitHub Pages
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+```bash
+npm run build
+```
 
-## Deploy
-Run `ng deploy --base-href=/eleicoes-2022/`
+Também pode usar `npx ng build --configuration production`.
+Arquivos estáticos em `dist/ApuraBrasil/browser/`, com baseHref `/ApuraBrasil/`, respeitando maiúsculas e minúsculas do repositório.
+O roteamento usa hash para suportar GitHub Pages. Não há SSR nem backend.
+A publicação automática ainda não foi configurada nesta entrega.
+
+## Estrutura
+
+- `src/main.ts`: bootstrap standalone.
+- `src/app/app.config.ts`: providers, locale pt-BR, Angular Material e roteamento hash.
+- `src/app/app.routes.ts`: base para próximas rotas.
+- `src/app/app.component.*`: tela inicial.
+- `src/environments/`: configuração por ambiente.

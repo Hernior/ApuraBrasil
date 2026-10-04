@@ -25,7 +25,7 @@ describe('AppComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('.brand img')?.getAttribute('alt')).toBe('ApuraBrasil');
     expect(element.textContent).toContain('Nenhuma eleição geral');
-    expect(element.textContent).toContain('Nenhum resultado eleitoral foi recebido');
+    expect(element.textContent).toContain('Nenhum resultado eleitoral foi recebido para Presidente');
     expect(element.textContent).not.toContain('AO VIVO');
   });
 });

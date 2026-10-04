@@ -4,9 +4,9 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 ## Estado desta entrega
 
-Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. Os resultados da apuração ainda não foram integrados; não há resultados fictícios.
+Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional consulta o EA20 oficial, com atualização manual; não há resultados fictícios.
 
-Resultados oficiais, polling, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
+Resultados por UF e município, demais cargos, polling, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
 
 ## Requisitos e execução
 
@@ -65,7 +65,7 @@ Há timeout de 15 segundos, cancelamento ao destruir a tela, prevenção de cons
 - EA11 oficial respondeu HTTP 200 com `Access-Control-Allow-Origin: https://hernior.github.io` à requisição com essa origem.
 - Uma consulta real com fetch em ChromeHeadless, a partir de localhost (Karma), retornou JSON legível e foi processada com sucesso.
 - A verificação live ficou separada dos testes unitários, que não acessam o TSE.
-- Isso valida o acesso ao EA11 nas condições testadas; EA12, EA14, EA15 e EA20 ainda precisam de verificações próprias. O portal publicado no GitHub Pages ainda não foi testado.
+- Isso valida o acesso ao EA11 nas condições testadas; EA12, EA14 e EA15 ainda precisam de verificações próprias. O EA20 nacional de Presidente foi verificado na entrega seguinte. O portal publicado no GitHub Pages ainda não foi testado.
 
 ## Ambientes
 
@@ -78,4 +78,31 @@ tseEnvironment: 'simulado2026'
 ```
 
 A disponibilidade do simulado depende do TSE. A tela identifica configuração com fase `s`; o build de produção recusa essa fase.
-A data/hora apresentada nesta entrega é a geração da configuração EA11, não uma atualização de votos.
+A data/hora da configuração identifica o EA11; o painel de Presidente apresenta separadamente a geração e a totalização do EA20.
+
+## Presidente nacional (EA20)
+
+Implementação baseada no [layout EA20 de 10/07/2026](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea20-arquivo-de-resultado-unificado).
+
+O painel usa as eleições federais de Presidente efetivamente publicadas no EA11. Seleciona inicialmente a primeira da lista, ordenada por turno; outras eleições publicadas podem ser escolhidas pelo usuário. Uma referência `cdt2` sozinha não habilita o segundo turno.
+
+O diretório é obtido em `arq[tp=u].dir`, substituindo os tokens do EA11. O cargo Presidente utiliza o código oficial 0001 e o código da eleição no nome do arquivo tem seis dígitos, preenchidos com zeros. O diretório da eleição mantém o código original.
+As fotos utilizam `arq[tp=ft].dir` e `sqcand.jpeg`; se a foto estiver ausente ou falhar, a identificação textual permanece.
+
+- Candidatos são lidos de `carg[].agr[].par[].cand[]`; partido e federação vêm dos respectivos registros.
+- `vap` e `pvapn/pvap` são votos computados e percentual em relação aos votos a votáveis concorrentes. Não se recalcula o percentual com outro denominador.
+- O ranking ordena por votos, usando `seq` para desempatar a apresentação. Os primeiros dois registros com votos positivos recebem o mesmo destaque neutro; isso não significa eleição.
+- A situação exibida é `st`. O indicador `e=s` também pode significar segundo turno e não é traduzido em “Eleito”.
+- Se `dv=n`, a votação e os percentuais são ocultados, sem apresentar zeros como apuração real.
+- Seções usam `s.st`, `s.ts` e `s.pstn/pst`. Indicadores usam `v.vv`, `v.vb` e `v.tvn` (incluindo nulos técnicos), além de comparecimento e abstenção em `e`.
+- Valores ausentes aparecem como “—”; zeros publicados permanecem zero.
+- A geração (`dg/hg`) e a totalização (`dt/ht`) aparecem separadamente. Não há selo AO VIVO enquanto não existir atualização automática.
+- Resultado de eleição, turno, cargo ou abrangência diferentes é rejeitado. Produção recusa fase de simulado.
+
+Consulta automática ocorre uma vez após a descoberta; novas consultas são manuais. A troca de eleição cancela a consulta anterior e respostas antigas não substituem os dados atuais. Timeout de 15 segundos, offline, HTTP 404/429 e falhas de rede possuem mensagens próprias. Falhas de atualização preservam os últimos dados do mesmo turno; a troca de eleição remove os dados anteriores.
+
+### Verificação de acesso
+
+Em 04/10/2026, o EA20 nacional descoberto pelo EA11 respondeu HTTP 200 e autorizou `https://hernior.github.io` no cabeçalho CORS. Um teste separado em ChromeHeadless executou EA11 → EA20 → renderização de candidatos com dados oficiais reais, com sucesso. Os testes unitários não consultam o TSE. Publicação no GitHub Pages e validação visual em celulares ainda não foram realizadas.
+
+Esta etapa não adiciona polling, snapshots, banco de dados, mapas, gráficos de evolução ou resultados estaduais.

@@ -1,0 +1,81 @@
+<section aria-labelledby="president-title">
+  <div class="toolbar">
+    <div><p class="eyebrow">Brasil · incluindo o exterior</p><h2 id="president-title">Presidente da República</h2></div>
+    @if (selected(); as election) {
+      <label class="election-select">
+        <span>Eleição</span>
+        <select [value]="election.id" (change)="selectElection($event)">
+          @for (option of available(); track option.id) {
+            <option [value]="option.id">{{ option.round }}º turno · {{ option.date }}</option>
+          }
+        </select>
+      </label>
+      <button matButton="outlined" [disabled]="president.loading()" (click)="refresh()">Atualizar Presidente</button>
+    }
+  </div>
+  <div aria-live="polite" [attr.aria-busy]="president.loading()">
+    @if (president.loading()) { <p>Consultando a apuração nacional no TSE…</p> }
+    @if (president.error(); as error) {
+      <p role="alert">{{ error }}</p>
+      @if (president.result()) { <p>Exibindo os últimos dados recebidos. A atualização falhou.</p> }
+    }
+    @if (!selected() && !elections.loading()) { <p>Eleição federal de Presidente ainda não disponível.</p> }
+    @if (president.result(); as result) {
+      @if (result.phase === 's') { <p><strong>SIMULADO — estes dados não são resultados oficiais.</strong></p> }
+      <p class="update">Arquivo gerado pelo TSE: {{ result.generatedDate }} às {{ result.generatedTime }}.
+        @if (result.totalizationTime) { Totalização: {{ result.totalizationDate }} às {{ result.totalizationTime }}. }
+      </p>
+      <div class="progress-summary">
+        <strong>{{ result.processedPercentage === null ? '—' : (result.processedPercentage | number:'1.2-2') + '%' }}</strong> das seções totalizadas
+        <p>{{ result.processedSections === null ? '—' : (result.processedSections | number) }} de {{ result.totalSections === null ? '—' : (result.totalSections | number) }} seções</p>
+        @if (result.processedPercentage !== null) {
+          <progress max="100" [value]="result.processedPercentage" aria-label="Seções totalizadas"></progress>
+        }
+        <p>{{ result.progress === 'n' ? 'Totalização não iniciada' : result.progress === 'p' ? 'Totalização em andamento' : 'Totalização finalizada' }}</p>
+      </div>
+      @if (!result.disclosureAllowed) {
+        <p class="notice">O TSE ainda não autorizou a divulgação da votação de Presidente. Os votos e percentuais dos candidatos não são exibidos.</p>
+      } @else {
+        <div class="metrics">
+          <mat-card appearance="outlined"><mat-card-content><span>Votos válidos</span><strong>{{ result.validVotes === null ? '—' : (result.validVotes | number) }}</strong></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Votos brancos</span><strong>{{ result.blankVotes === null ? '—' : (result.blankVotes | number) }}</strong></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Total de votos nulos</span><strong>{{ result.nullVotes === null ? '—' : (result.nullVotes | number) }}</strong><small>Inclui nulos técnicos</small></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Comparecimento</span><strong>{{ result.turnout === null ? '—' : (result.turnout | number) }}</strong><small>{{ result.turnoutPercentage === null ? '—' : (result.turnoutPercentage | number:'1.2-2') + '%' }}</small></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Abstenção</span><strong>{{ result.abstention === null ? '—' : (result.abstention | number) }}</strong><small>{{ result.abstentionPercentage === null ? '—' : (result.abstentionPercentage | number:'1.2-2') + '%' }}</small></mat-card-content></mat-card>
+        </div>
+        <p class="note">Percentuais dos candidatos conforme o TSE: votos computados em relação aos votos a votáveis concorrentes. Comparecimento e abstenção referem-se às seções instaladas já totalizadas.</p>
+      }
+      <div class="candidates">
+        @for (candidate of result.candidates; track candidate.id; let i = $index) {
+          <mat-card appearance="outlined" [class.highlight]="result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
+            <mat-card-content>
+              <div class="candidate-header">
+                @if (candidate.photoUrl && !failedPhotos().has(candidate.id)) {
+                  <img class="photo" [src]="candidate.photoUrl" alt="" width="64" height="80" loading="lazy" (error)="photoFailed(candidate.id)">
+                }
+                <div>
+                  <h3>{{ candidate.name }}</h3>
+                  <p>Nº {{ candidate.number }} · {{ candidate.party }}</p>
+                  @if (candidate.federation) { <p>Federação: {{ candidate.federation }}</p> }
+                </div>
+              </div>
+              @if (result.disclosureAllowed) {
+                <div class="vote-line">
+                  <strong>{{ candidate.percentage === null ? '—' : (candidate.percentage | number:'1.2-2') + '%' }}</strong>
+                  <span>{{ candidate.votes === null ? '—' : (candidate.votes | number) }} votos</span>
+                </div>
+                @if (candidate.percentage !== null) {
+                  <progress max="100" [value]="candidate.percentage" [attr.aria-label]="'Percentual de ' + candidate.name"></progress>
+                }
+                @if (candidate.voteDestination) { <p class="note">Destinação: {{ candidate.voteDestination }}</p> }
+              }
+              <p class="status">Situação: {{ candidate.status || 'Ainda não informada pelo TSE' }}</p>
+            </mat-card-content>
+          </mat-card>
+        } @empty { <p>Nenhum candidato foi disponibilizado neste arquivo.</p> }
+      </div>
+    } @else if (!president.loading()) {
+      <p>Nenhum resultado eleitoral foi recebido para Presidente.</p>
+    }
+  </div>
+</section>

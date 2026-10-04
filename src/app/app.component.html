@@ -6,6 +6,7 @@
   <p class="eyebrow">Acompanhamento eleitoral</p>
   <h1>Eleições Gerais de 2026</h1>
   <p class="intro">Um espaço para acompanhar a apuração e os resultados oficiais.</p>
+  <app-president />
   <mat-card appearance="outlined">
     <mat-card-header><mat-card-title>Eleições disponíveis</mat-card-title></mat-card-header>
     <mat-card-content aria-live="polite" [attr.aria-busy]="elections.loading()">
@@ -37,8 +38,8 @@
           <p>Nenhuma eleição geral federal ou estadual do ciclo de 2026 está disponível nesta configuração.</p>
         }
       }
-      <p>A consulta à apuração será disponibilizada na próxima etapa.</p>
-      <p>Nenhum resultado eleitoral foi recebido nesta versão.</p>
+
+
     </mat-card-content>
     <mat-card-actions>
       <button matButton="outlined" [disabled]="elections.loading()" (click)="elections.load()">Atualizar eleições</button>
@@ -48,5 +49,5 @@
 <footer>
   <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
   <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização de resultados recebida do TSE: ainda não recebida.</p>
+  <p>Última atualização recebida do TSE (Presidente): @if (president.result(); as result) { {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
 </footer>

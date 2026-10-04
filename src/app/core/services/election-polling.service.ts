@@ -22,7 +22,7 @@ export class ElectionPollingService {
   private readonly provider = inject(ELECTION_DATA_PROVIDER);
   private readonly president = inject(PresidentStore);
   private readonly zone = inject(NgZone);
-  private context: { config: ElectionConfiguration; election: Election; scope: string } | null = null;
+  private context: { config: ElectionConfiguration; election: Election; scope: string; officeCode: '1' | '3' | '5' } | null = null;
   private controller: AbortController | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private signature: string | null = null;
@@ -59,10 +59,10 @@ export class ElectionPollingService {
     }
   };
 
-  activate(config: ElectionConfiguration, election: Election, scope = 'br'): void {
+  activate(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' = election.kind === 'state' ? '3' : '1'): void {
     this.stop();
-    this.context = { config, election, scope };
-    if (this.president.result()?.electionId !== election.id || this.president.result()?.scopeCode !== scope) this.president.result.set(null);
+    this.context = { config, election, scope, officeCode };
+    if (this.president.result()?.electionId !== election.id || this.president.result()?.scopeCode !== scope || (this.president.result()?.officeCode ?? '1') !== officeCode) this.president.result.set(null);
     this.signature = null;
     this.lastResultAt.set(null);
     this.lastCheckedAt.set(null);
@@ -145,7 +145,7 @@ export class ElectionPollingService {
       const previous = this.president.result();
       const changed = this.signature !== tracking.signature;
       if (force || changed || !previous) {
-        const ok = await this.president.load(context.config, context.election, context.scope);
+        const ok = await this.president.load(context.config, context.election, context.scope, context.officeCode);
         if (this.controller !== controller) return;
         if (!ok) throw this.president.failure() ?? new TypeError('Falha na atualização do resultado eleitoral.');
         const result = this.president.result()!;

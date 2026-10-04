@@ -7,8 +7,9 @@
   <h1>Eleições Gerais de 2026</h1>
   <p class="intro">Um espaço para acompanhar a apuração e os resultados oficiais.</p>
   <div class="scope-controls">
-    <mat-form-field appearance="outline"><mat-label>UF</mat-label><mat-select [value]="navigation.uf()" [disabled]="navigation.loading()" (selectionChange)="navigation.selectUf($event.value)"><mat-option value="">Brasil (sem UF)</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
-    @if (!navigation.hasUf()) { <p>Selecione uma UF para habilitar as abas estaduais.</p> }
+    <mat-form-field appearance="outline"><mat-label>UF Eleição Federal</mat-label><mat-select [value]="navigation.federalFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectFederalUf($event.value)"><mat-option value="">Brasil inteiro</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>UF Eleição Estadual</mat-label><mat-select [value]="navigation.stateFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectStateUf($event.value)"><mat-option value="">Selecione uma UF</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    @if (!navigation.hasStateUf()) { <p>Selecione uma UF na eleição estadual para habilitar as abas estaduais.</p> }
     @if (navigation.loading()) { <p role="status">Carregando UFs…</p> }
     @if (navigation.error(); as error) { <p role="alert">{{ error }}</p><button matButton="outlined" (click)="navigation.retry()">Recarregar UFs</button> }
   </div>
@@ -60,5 +61,5 @@
 <footer>
   <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
   <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização recebida do TSE: @if (president.result(); as result) { {{ result.officeCode === '3' ? 'Governador' : 'Presidente' }} · {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
+  <p>Última atualização recebida do TSE: @if (president.result(); as result) { {{ result.officeCode === '5' ? 'Senador' : result.officeCode === '3' ? 'Governador' : 'Presidente' }} · {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
 </footer>

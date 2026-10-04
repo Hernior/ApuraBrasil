@@ -36,6 +36,16 @@ export function rankCandidates(candidates: Candidate[]): Candidate[] {
     (b.votes ?? -1) - (a.votes ?? -1) || a.sequence - b.sequence || a.id.localeCompare(b.id));
 }
 
+function parseSubstitutes(value: unknown): NonNullable<Candidate['substitutes']> {
+  const substitutes = array(value ?? []).map(object).map((substitute): NonNullable<Candidate['substitutes']>[number] => {
+    const type = string(substitute['tp']);
+    if (type !== 's1' && type !== 's2') throw new Error('EA20 de Senador: tipo de suplente inválido.');
+    return { type, name: optionalText(substitute['nmu']) ?? string(substitute['nm']), party: string(substitute['sgp']) };
+  });
+  if (new Set(substitutes.map(s => s.type)).size !== substitutes.length) throw new Error('EA20 de Senador: suplentes duplicados.');
+  return substitutes.sort((a, b) => a.type.localeCompare(b.type));
+}
+
 export function parsePresidentEA20(input: unknown, electionId: string, round: 1 | 2, scope = 'br'): ElectionResult {
   return parseMajorityEA20(input, electionId, round, scope, '1');
 }
@@ -45,7 +55,14 @@ export function parseGovernorEA20(input: unknown, electionId: string, round: 1 |
   return parseMajorityEA20(input, electionId, round, scope, '3');
 }
 
-function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, scope: string, officeCode: '1' | '3'): ElectionResult {
+export function parseSenatorEA20(input: unknown, electionId: string, round: 1 | 2, scope: string): ElectionResult {
+  if (round !== 1 || !/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || scope.startsWith('br') || scope.startsWith('zz')) throw new Error('Turno ou abrangência de Senador inválido.');
+  const result = parseMajorityEA20(input, electionId, round, scope, '5');
+  if (result.seats !== 2) throw new Error('EA20 de Senador não informa as duas vagas de 2026.');
+  return result;
+}
+
+function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, scope: string, officeCode: '1' | '3' | '5'): ElectionResult {
   const root = object(input);
   const phase = string(root['f']);
   const progress = string(root['and']);
@@ -59,7 +76,7 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
   }
   const offices = array(root['carg']).map(object);
   const office = offices.find(c => id(c['cd']) === officeCode);
-  if (!office || offices.length !== 1) throw new Error(`EA20 não corresponde ao cargo ${officeCode === '1' ? 'Presidente' : 'Governador'}.`);
+  if (!office || offices.length !== 1) throw new Error(`EA20 não corresponde ao cargo ${officeCode === '1' ? 'Presidente' : officeCode === '3' ? 'Governador' : 'Senador'}.`);
   const federations = new Map<string, string>();
   for (const item of array(office['fed'] ?? [])) {
     const federation = object(item);
@@ -82,7 +99,8 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
           votes: dv === 's' ? numeric(candidate['vap']) : null,
           percentage: dv === 's' ? numeric(candidate['pvapn'] ?? candidate['pvap'], true) : null,
           sequence: numeric(candidate['seq']) ?? Number.MAX_SAFE_INTEGER,
-          photoUrl: null
+          photoUrl: null,
+          ...(officeCode === '5' ? { substitutes: parseSubstitutes(candidate['vs']) } : {})
         });
       }
     }
@@ -92,7 +110,7 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
   const electors = object(root['e']);
   const votes = object(root['v']);
   return {
-    electionId: id(root['ele']), officeCode, scopeCode: scope, round, phase, generationId: id(root['idg']),
+    electionId: id(root['ele']), officeCode, seats: numeric(office['nv']), scopeCode: scope, round, phase, generationId: id(root['idg']),
     generatedDate: string(root['dg']), generatedTime: string(root['hg']),
     totalizationDate: optionalText(root['dt']), totalizationTime: optionalText(root['ht']),
     disclosureAllowed: dv === 's', progress: progress as 'n' | 'p' | 'f',

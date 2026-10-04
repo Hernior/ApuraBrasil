@@ -1,7 +1,8 @@
 import { Candidate } from './candidate.model';
 
 export interface ElectionResult {
-  officeCode?: '1' | '3';
+  officeCode?: '1' | '3' | '5';
+  seats?: number | null;
   electionId: string;
   scopeCode: string;
   round: 1 | 2;

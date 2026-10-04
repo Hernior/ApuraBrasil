@@ -34,13 +34,21 @@ export class TseUrlBuilderService {
   }
 
   governorUrl(config: ElectionConfiguration, election: Election, scope: string): string {
+    return this.stateResultUrl(config, election, scope, '3');
+  }
+  senatorUrl(config: ElectionConfiguration, election: Election, scope: string): string {
+    if (election.round !== 1) throw new Error('Senador não possui segundo turno.');
+    return this.stateResultUrl(config, election, scope, '5');
+  }
+  private stateResultUrl(config: ElectionConfiguration, election: Election, scope: string, officeCode: '3' | '5'): string {
+    const officeName = officeCode === '3' ? 'Governador' : 'Senador';
     const uf = scope.split('/')[0]!;
-    if (!/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || uf === 'br' || uf === 'zz') throw new Error('UF ou município de Governador inválido.');
-    if (election.kind !== 'state' || !election.scopes.some(s => (s.code === 'br' || s.code === uf) && s.offices.some(o => Number(o.code) === 3))) throw new Error('Governador não disponível nesta eleição e UF.');
+    if (!/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || uf === 'br' || uf === 'zz') throw new Error(`UF ou município de ${officeName} inválido.`);
+    if (election.kind !== 'state' || !election.scopes.some(s => (s.code === 'br' || s.code === uf) && s.offices.some(o => o.code.replace(/^0+/, '') === officeCode))) throw new Error(`${officeName} não disponível nesta eleição e UF.`);
     if (!/^\d{1,6}$/.test(election.id)) throw new Error('Código de eleição inválido.');
     const directory = this.directory(config, election, 'u', uf);
     if (!directory) throw new Error('Diretório de resultados EA20 ausente no EA11.');
-    return `${directory}/${scope.replace('/', '')}-c0003-e${election.id.padStart(6, '0')}-u.json`;
+    return `${directory}/${scope.replace('/', '')}-c${officeCode.padStart(4, '0')}-e${election.id.padStart(6, '0')}-u.json`;
   }
 
   candidatePhotoUrl(config: ElectionConfiguration, election: Election, candidateId: string, uf = 'br'): string | null {

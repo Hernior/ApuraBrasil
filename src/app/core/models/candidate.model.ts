@@ -1,4 +1,5 @@
 export interface Candidate {
+  substitutes?: { type: 's1' | 's2'; name: string; party: string }[];
   id: string;
   number: string;
   name: string;

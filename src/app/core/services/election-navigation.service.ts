@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, map, startWith } from 'rxjs';
+import { filter, map, startWith, tap } from 'rxjs';
 import { ELECTION_DATA_PROVIDER } from '../api/election-data-provider';
 import { ElectionConfiguration } from '../models/election.model';
 import { ElectionStore } from '../state/election.store';
@@ -9,6 +9,7 @@ import { ElectionPollingService } from './election-polling.service';
 import { TseRequestError } from '../api/tse-request-error';
 
 export type ElectionTab = 'president' | 'governor' | 'senator' | 'federal-deputy' | 'state-deputy';
+interface GeographicFilter { uf: string; municipality: string; }
 
 @Injectable({ providedIn: 'root' })
 export class ElectionNavigationService implements OnDestroy {
@@ -17,6 +18,8 @@ export class ElectionNavigationService implements OnDestroy {
   private readonly provider = inject(ELECTION_DATA_PROVIDER);
   private readonly polling = inject(ElectionPollingService);
   private controller: AbortController | null = null;
+  readonly federalFilter = signal<GeographicFilter>({ uf: '', municipality: '' });
+  readonly stateFilter = signal<GeographicFilter>({ uf: '', municipality: '' });
   readonly tabs: { id: ElectionTab; label: string; path: string }[] = [
     { id: 'president', label: 'Presidente', path: '' },
     { id: 'governor', label: 'Governador', path: 'governador' },
@@ -30,7 +33,11 @@ export class ElectionNavigationService implements OnDestroy {
     return { uf: String(route.params['uf'] ?? '').toLowerCase(), municipality: String(route.params['codigo'] ?? ''), office: (route.data['office'] ?? 'president') as ElectionTab };
   }
   private readonly location = toSignal(this.router.events.pipe(
-    filter(event => event instanceof NavigationEnd), map(() => this.snapshot()), startWith(this.snapshot())
+    filter(event => event instanceof NavigationEnd), map(() => this.snapshot()), startWith(this.snapshot()),
+    tap(location => {
+      const group = location.office === 'president' ? this.federalFilter : this.stateFilter;
+      group.set({ uf: location.uf, municipality: location.municipality });
+    })
   ), { requireSync: true });
   readonly uf = computed(() => this.location().uf);
   readonly municipality = computed(() => this.location().municipality);
@@ -38,7 +45,7 @@ export class ElectionNavigationService implements OnDestroy {
   readonly states = signal<string[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly hasUf = computed(() => this.states().includes(this.uf()));
+  readonly hasStateUf = computed(() => this.states().includes(this.stateFilter().uf));
 
   constructor() {
     effect(() => {
@@ -73,16 +80,25 @@ export class ElectionNavigationService implements OnDestroy {
     const config = this.elections.configuration();
     if (config && !this.loading()) void this.loadStates(config);
   }
-  disabled(tab: ElectionTab): boolean { return tab !== 'president' && !this.hasUf(); }
-  link(tab: ElectionTab, uf = this.uf(), municipality = this.municipality()): string[] {
+  disabled(tab: ElectionTab): boolean { return tab !== 'president' && !this.hasStateUf(); }
+  link(tab: ElectionTab): string[] {
+    const { uf, municipality } = tab === 'president' ? this.federalFilter() : this.stateFilter();
     if (!uf || !this.states().includes(uf)) return ['/'];
     const path = this.tabs.find(t => t.id === tab)!.path;
     const commands = path ? ['/', path, 'uf', uf] : ['/', 'uf', uf];
     return municipality ? [...commands, 'municipio', municipality] : commands;
   }
-  selectUf(uf: string): void {
+  selectFederalUf(uf: string): void {
     if (uf && !this.states().includes(uf)) return;
-    void this.router.navigate(uf ? this.link(this.office(), uf, '') : ['/']);
+    if (uf === this.federalFilter().uf) return;
+    this.federalFilter.set({ uf, municipality: '' });
+    if (this.office() === 'president') void this.router.navigate(this.link('president'));
+  }
+  selectStateUf(uf: string): void {
+    if (uf && !this.states().includes(uf)) return;
+    if (uf === this.stateFilter().uf) return;
+    this.stateFilter.set({ uf, municipality: '' });
+    if (this.office() !== 'president') void this.router.navigate(this.link(uf ? this.office() : 'president'));
   }
   ngOnDestroy(): void { this.controller?.abort(); this.controller = null; }
 }

@@ -1,6 +1,6 @@
 <section aria-labelledby="president-title">
   <div class="toolbar">
-    <div><p class="eyebrow">{{ scope() === 'br' ? (governor() ? 'Selecione uma UF' : 'Brasil · incluindo o exterior') : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">{{ heading() }}</h2></div>
+    <div><p class="eyebrow">{{ scope() === 'br' ? (stateOffice() ? 'Selecione uma UF' : 'Brasil · incluindo o exterior') : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">{{ heading() }}</h2></div>
     @if (selected(); as election) {
       @if (scope() !== 'br') {
         <label class="election-select"><span>Município</span><select [value]="municipalityCode()" [disabled]="municipalitiesLoading() || !municipalities().length" (change)="selectMunicipality($event)"><option value="">Toda a UF</option>@for (city of municipalities(); track city.code) { <option [value]="city.code">{{ city.name }}</option> }</select></label>
@@ -21,7 +21,7 @@
     @if (municipalitiesLoading()) { <p>Consultando municípios no TSE…</p> }
     @if (municipalitiesError(); as error) { <p role="alert">{{ error }}</p> }
     @if (polling.live()) { <p class="live">AO VIVO</p> }
-    @if (polling.suspended() && !municipalitiesLoading() && !municipalitiesError() && !(governor() && scope() === 'br')) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
+    @if (polling.suspended() && !municipalitiesLoading() && !municipalitiesError() && !(stateOffice() && scope() === 'br')) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
     @if (polling.message(); as message) { <p role="status">{{ message }}</p> }
     @if (polling.checking()) { <p>Consultando a apuração no TSE…</p> }
     @if (president.error(); as error) {
@@ -30,6 +30,7 @@
     }
     @if (!selected() && !elections.loading()) { <p>Eleição de {{ officeName() }} ainda não disponível para esta abrangência.</p> }
     @if (president.result(); as result) {
+      @if (senator()) { <p class="notice"><strong>{{ result.seats }} vagas para Senador.</strong> Os dois votos do eleitor são para candidatos diferentes do mesmo cargo. A situação de cada candidato é a informada pelo TSE.</p> }
       @if (result.phase === 's') { <p><strong>SIMULADO — estes dados não são resultados oficiais.</strong></p> }
       <p class="update">Arquivo gerado pelo TSE: {{ result.generatedDate }} às {{ result.generatedTime }}.
         @if (result.totalizationTime) { Totalização: {{ result.totalizationDate }} às {{ result.totalizationTime }}. }
@@ -56,7 +57,7 @@
       }
       <div class="candidates">
         @for (candidate of result.candidates; track candidate.id; let i = $index) {
-          <mat-card appearance="outlined" [class.highlight]="result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
+          <mat-card appearance="outlined" [class.highlight]="!senator() && result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
             <mat-card-content>
               <div class="candidate-header">
                 @if (candidate.photoUrl && !failedPhotos().has(candidate.id)) {
@@ -66,6 +67,7 @@
                   <h3>{{ candidate.name }}</h3>
                   <p>Nº {{ candidate.number }} · {{ candidate.party }}</p>
                   @if (candidate.federation) { <p>Federação: {{ candidate.federation }}</p> }
+                  @if (senator()) { @for (substitute of candidate.substitutes || []; track substitute.type) { <p>{{ substitute.type === 's1' ? '1º suplente' : '2º suplente' }}: {{ substitute.name }} · {{ substitute.party }}</p> } }
                 </div>
               </div>
               @if (result.disclosureAllowed) {
@@ -84,7 +86,7 @@
         } @empty { <p>Nenhum candidato foi disponibilizado neste arquivo.</p> }
       </div>
     } @else if (!polling.checking()) {
-      <p>{{ governor() && scope() === 'br' ? 'Escolha uma UF para acompanhar Governador.' : 'Nenhum resultado eleitoral foi recebido para ' + officeName() + '.' }}</p>
+      <p>{{ stateOffice() && scope() === 'br' ? 'Escolha uma UF para acompanhar ' + officeName() + '.' : 'Nenhum resultado eleitoral foi recebido para ' + officeName() + '.' }}</p>
     }
   </div>
 </section>

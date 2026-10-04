@@ -6,10 +6,12 @@ export const routes: Routes = [
   { path: 'governador', redirectTo: '', pathMatch: 'full' },
   { path: 'governador/uf/:uf/municipio/:codigo', data: { office: 'governor' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'governador/uf/:uf', data: { office: 'governor' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
+  { path: 'senador', redirectTo: '', pathMatch: 'full' },
+  { path: 'senador/uf/:uf/municipio/:codigo', data: { office: 'senator' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
+  { path: 'senador/uf/:uf', data: { office: 'senator' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'uf/:uf/municipio/:codigo', loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'uf/:uf', loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   ...[
-    { path: 'senador', office: 'senator' },
     { path: 'deputado-federal', office: 'federal-deputy' },
     { path: 'deputado-estadual', office: 'state-deputy' }
   ].flatMap(tab => [

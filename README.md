@@ -6,7 +6,7 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional e por UF consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Resultados municipais, demais cargos, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
+Presidente, Governador e Senador incluem resultados por UF e município. Deputados, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
 
 ## Requisitos e execução
 
@@ -160,7 +160,7 @@ Em 04/10/2026, EA12 federal, EA15 estadual de AL e EA20 federal de Maceió respo
 
 ## Governador por UF e município
 
-- A aba Governador abre a UF e o município selecionados no contexto global. Inclui o Distrito Federal. Rotas diretas: `/#/governador/uf/al` e `/#/governador/uf/al/municipio/27855` (Maceió). A antiga rota `/#/governador`, sem UF, redireciona para Presidente.
+- A aba Governador abre a UF e o município selecionados no contexto estadual. Inclui o Distrito Federal. Rotas diretas: `/#/governador/uf/al` e `/#/governador/uf/al/municipio/27855` (Maceió). A antiga rota `/#/governador`, sem UF, redireciona para Presidente.
 - A eleição estadual e os turnos disponíveis vêm do EA11. O seletor oferece somente eleições que publicam o cargo Governador na abrangência BR ou na UF aberta. UFs e municípios são descobertos pelo EA12 da eleição estadual, com códigos TSE e IBGE separados e preservação dos zeros à esquerda.
 - Usa o cargo `0003` conforme o [layout EA20](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea20-arquivo-de-resultado-unificado), no diretório `u` da eleição estadual. Resultados são validados por eleição, turno, cargo e abrangência exata. Não usa IDs fixos nem consulta as 27 UFs simultaneamente.
 - Fotos de Governador usam o diretório `ft` da UF aberta. O mesmo painel de resultados exibe votação, percentuais, andamento, seções, votos válidos, brancos e nulos, comparecimento, abstenção e situação oficial do candidato. Não infere eleição ou segundo turno a partir da posição no ranking.
@@ -170,30 +170,40 @@ Em 04/10/2026, EA12 federal, EA15 estadual de AL e EA20 federal de Maceió respo
 
 Em 04/10/2026, uma verificação pontual em ChromeHeadless abriu Governador de Alagoas e de Maceió usando EA11, EA12, EA14, EA15 e EA20 oficiais. As duas rotas renderizaram candidatos do cargo correto. EA20 de AL e EA14 estadual também responderam HTTP 200 com CORS para a origem GitHub Pages. A suíte permanente possui 82 testes com fixtures; a verificação oficial separada não integra a suíte. Isso não representa verificação de todos os municípios ou publicação no GitHub Pages.
 
-## Abas de cargos e seleção compartilhada de UF
+## Senador por UF e município
 
-- Navegação em abas Angular Material: Presidente, Governador, Senador, Dep. Federal e Dep. Estadual. O seletor global de UF fica acima das abas e usa as UFs descobertas no EA12, incluindo o DF.
-- Sem UF selecionada, as quatro abas estaduais ficam desativadas, sem links navegáveis. Presidente permanece habilitada na abrangência Brasil.
-- Selecionar uma UF habilita as abas estaduais. Trocar de cargo mantém a UF e o código municipal selecionados. Trocar de UF limpa o município; escolher Brasil (sem UF) retorna para Presidente nacional e desativa novamente as abas estaduais.
-- Senador e os dois cargos de deputado mostram “Em implementação”. Não consultam EA20 e interrompem o acompanhamento do painel anterior. Isso não representa implementação da apuração desses cargos.
-- Rotas sem UF para cargos estaduais redirecionam para Presidente. Rotas das abas pendentes seguem `/senador/uf/:uf`, `/deputado-federal/uf/:uf` e `/deputado-estadual/uf/:uf`, com o sufixo opcional `/municipio/:codigo` para preservar o contexto.
-- O seletor municipal permanece no painel do cargo implementado. A seleção de UF foi removida desse painel para usar um único seletor global.
+- A aba Senador usa a UF e o município compartilhados pelas abas estaduais. Rotas diretas: `/#/senador/uf/al` e `/#/senador/uf/al/municipio/27855` (Maceió). Sem UF, redireciona para Presidente.
+- A eleição é descoberta pelo EA11, com cargo `0005`, abrangência BR ou UF selecionada e primeiro turno. O EA20 deve informar duas vagas em `carg.nv`; outro valor é recusado. As duas vagas pertencem ao mesmo cargo e à mesma lista de candidatos.
+- Votos e percentuais são exibidos como publicados pelo TSE, sem dividir por dois ou recalcular com o comparecimento. A situação vem de `st`; a posição no ranking não declara eleitos nem recebe destaque de eleição. Se `dv=n`, votos e percentuais ficam ocultos.
+- O painel apresenta primeiro e segundo suplentes publicados em `vs`, com nome e partido. Fotos usam o diretório da UF. Eleição, turno, cargo e abrangência exata são validados antes da apresentação.
+- O acompanhamento usa EA14 para UF e EA15 para município, considerando somente o registro selecionado. A troca entre Governador e Senador remove os resultados anteriores mesmo quando eleição e abrangência são iguais. Mantém cancelamento, proteção contra respostas antigas e pausa por HTTP 429 entre cargos.
+
+Em 04/10/2026, os EA20 de Senador de AL e Maceió responderam HTTP 200 com CORS para a origem GitHub Pages. Uma verificação separada em ChromeHeadless abriu as duas rotas com EA11, EA12, EA14, EA15 e EA20 oficiais e confirmou cargo 5 e duas vagas. A suíte permanente possui 98 testes sem acesso ao TSE. A verificação pontual não cobre todas as UFs e municípios nem o site publicado.
+
+## Abas de cargos e filtros federal e estadual
+
+- Navegação em abas Angular Material: Presidente, Governador, Senador, Dep. Federal e Dep. Estadual. Dois seletores ficam acima das abas: **UF Eleição Federal** para Presidente e **UF Eleição Estadual** para as outras quatro abas. Ambos usam as UFs descobertas no EA12, incluindo o DF.
+- Presidente pode permanecer em **Brasil inteiro** enquanto as abas estaduais usam uma UF específica. Selecionar uma UF federal não habilita as abas estaduais; somente a seleção estadual controla esse bloqueio.
+- Cada grupo mantém sua própria UF e seu próprio município durante a sessão da aplicação. Trocar entre Presidente e os demais cargos restaura a seleção do grupo de destino. As quatro abas estaduais compartilham a seleção estadual.
+- Alterar o filtro de um grupo enquanto o outro está aberto não troca a rota nem recarrega a apuração atual. Trocar a UF limpa apenas o município daquele grupo. Limpar a UF federal mantém a seleção estadual e suas abas habilitadas; limpar a UF estadual desativa essas abas e, se uma delas estiver aberta, volta para a seleção federal salva.
+- Os dois cargos de deputado mostram “Em implementação”. Não consultam EA20 e interrompem o acompanhamento do painel anterior. Isso não representa implementação da apuração desses cargos.
+- Rotas sem UF para cargos estaduais redirecionam para Presidente. Rotas das abas pendentes seguem `/deputado-federal/uf/:uf` e `/deputado-estadual/uf/:uf`, com o sufixo opcional `/municipio/:codigo` para preservar o contexto.
+- O seletor municipal permanece no painel do cargo implementado e atualiza somente o grupo daquele cargo. A seleção de UF usa os dois seletores acima das abas. URLs diretas inicializam apenas o grupo correspondente; o outro mantém sua seleção durante a sessão.
 - As abas são associadas ao painel pela API `mat-tab-nav-panel`, com navegação por teclado e estado desativado fornecidos pelo Angular Material. A suíte inclui testes de cliques, bloqueio sem UF, seleção compartilhada, URLs diretas e manutenção do município.
 
-### Entregas restantes após Governador
+### Entregas restantes após Senador
 
-Estimativa atual: 11 entregas funcionais, sujeitas a divisão em etapas menores:
+Estimativa atual: 10 entregas funcionais, sujeitas a divisão em etapas menores:
 
-1. Senador, com duas vagas.
-2. Deputado Federal.
-3. Deputado Estadual/Distrital.
-4. Mapas oficiais do IBGE.
-5. Histórico local e gráficos de evolução.
-6. Comparação entre candidatos.
-7. Busca global.
-8. Modo TV.
-9. PWA.
-10. Deploy automático no GitHub Pages.
-11. Dashboard nacional e agregação regional.
+1. Deputado Federal.
+2. Deputado Estadual/Distrital.
+3. Mapas oficiais do IBGE.
+4. Histórico local e gráficos de evolução.
+5. Comparação entre candidatos.
+6. Busca global.
+7. Modo TV.
+8. PWA.
+9. Deploy automático no GitHub Pages.
+10. Dashboard nacional e agregação regional.
 
 Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

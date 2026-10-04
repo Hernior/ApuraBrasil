@@ -26,13 +26,16 @@ export class PresidentComponent implements OnDestroy {
   private readonly params = toSignal(this.route?.paramMap ?? of(convertToParamMap({})));
   private readonly routeData = toSignal(this.route?.data ?? of<Data>({}));
   readonly governor = computed(() => this.routeData()?.['office'] === 'governor');
-  readonly officeName = computed(() => this.governor() ? 'Governador' : 'Presidente');
-  readonly heading = computed(() => this.governor() ? 'Governador' : 'Presidente da República');
+  readonly senator = computed(() => this.routeData()?.['office'] === 'senator');
+  readonly stateOffice = computed(() => this.governor() || this.senator());
+  readonly officeCode = computed<'1' | '3' | '5'>(() => this.senator() ? '5' : this.governor() ? '3' : '1');
+  readonly officeName = computed(() => this.senator() ? 'Senador' : this.governor() ? 'Governador' : 'Presidente');
+  readonly heading = computed(() => this.stateOffice() ? this.officeName() : 'Presidente da República');
   readonly scope = computed(() => this.params()?.get('uf')?.toLowerCase() ?? 'br');
   readonly municipalityCode = computed(() => this.params()?.get('codigo') ?? '');
   readonly municipalities = signal<Municipality[]>([]);
   readonly governorStates = signal<string[]>([]);
-  readonly availableStates = computed(() => this.governor() ? this.governorStates() : this.polling.availableStates());
+  readonly availableStates = computed(() => this.stateOffice() ? this.governorStates() : this.polling.availableStates());
   readonly municipalitiesError = signal<string | null>(null);
   readonly municipalitiesLoading = signal(false);
   readonly municipality = computed(() => this.municipalities().find(m => m.code === this.municipalityCode()));
@@ -44,9 +47,9 @@ export class PresidentComponent implements OnDestroy {
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());
   readonly available = computed(() => this.elections.elections().filter(e =>
-    e.kind === (this.governor() ? 'state' : 'federal') && e.scopes.some(s =>
-      (this.governor() ? s.code === 'br' || this.scope() === 'br' || s.code === this.scope() : s.code === 'br') &&
-      s.offices.some(o => Number(o.code) === (this.governor() ? 3 : 1)))));
+    (!this.senator() || e.round === 1) && e.kind === (this.stateOffice() ? 'state' : 'federal') && e.scopes.some(s =>
+      (this.stateOffice() ? s.code === 'br' || this.scope() === 'br' || s.code === this.scope() : s.code === 'br') &&
+      s.offices.some(o => Number(o.code) === Number(this.officeCode())))));
   readonly selected = computed(() => this.available().find(e => e.id === this.selectedId()) ?? this.available()[0] ?? null);
 
   constructor() {
@@ -55,15 +58,16 @@ export class PresidentComponent implements OnDestroy {
       const election = this.selected();
       const scope = this.scope();
       const municipality = this.municipalityCode();
-      const governor = this.governor();
+      const governor = this.stateOffice();
+      const officeCode = this.officeCode();
       if (config && election) {
-        untracked(() => { void this.activate(config, election, scope, municipality, governor); });
+        untracked(() => { void this.activate(config, election, scope, municipality, governor, officeCode); });
       } else if (config) {
         untracked(() => { this.municipalityController?.abort(); this.municipalityController = null; this.municipalitiesLoading.set(false); this.municipalities.set([]); this.polling.stop(); this.president.result.set(null); });
       }
     });
   }
-  private async activate(config: ElectionConfiguration, election: Election, scope: string, municipality: string, governor = this.governor()): Promise<void> {
+  private async activate(config: ElectionConfiguration, election: Election, scope: string, municipality: string, governor = this.stateOffice(), officeCode = this.officeCode()): Promise<void> {
     this.municipalityController?.abort();
     const controller = new AbortController();
     this.municipalityController = controller;
@@ -71,8 +75,8 @@ export class PresidentComponent implements OnDestroy {
     this.governorStates.set([]);
     this.municipalitiesError.set(null);
     this.municipalitiesLoading.set(scope !== 'br' || governor);
-    if (!municipality && !governor) this.polling.activate(config, election, scope);
-    else { this.polling.stop(); this.president.result.set(null); this.polling.message.set(null); }
+    if (!municipality && !governor) this.polling.activate(config, election, scope, officeCode);
+    else { this.polling.stop(); this.president.result.set(null); this.president.error.set(null); this.polling.message.set(null); }
     if (scope === 'br' && !governor) return;
     if (!navigator.onLine || !this.polling.canRequest()) {
       this.municipalitiesLoading.set(false);
@@ -86,17 +90,17 @@ export class PresidentComponent implements OnDestroy {
       this.municipalities.set(municipalities.filter(m => m.uf === scope));
       if (governor) {
         const states = [...new Set(municipalities.map(m => m.uf))].filter(uf => election.scopes.some(s =>
-          (s.code === 'br' || s.code === uf) && s.offices.some(o => Number(o.code) === 3))).sort();
+          (s.code === 'br' || s.code === uf) && s.offices.some(o => Number(o.code) === Number(officeCode)))).sort();
         this.polling.availableStates.set(states);
         this.governorStates.set(states);
         if (scope === 'br') return;
-        if (!states.includes(scope)) throw new Error('Governador não disponível nesta UF e eleição.');
+        if (!states.includes(scope)) throw new Error('Cargo não disponível nesta UF e eleição.');
       }
       if (municipality) {
         if (!this.municipalities().some(m => m.code === municipality)) throw new Error('Município não disponível nesta UF no EA12.');
         if (!governor) this.polling.availableStates.set([...new Set(municipalities.map(m => m.uf))].sort());
-        this.polling.activate(config, election, `${scope}/${municipality}`);
-      } else if (governor) this.polling.activate(config, election, scope);
+        this.polling.activate(config, election, `${scope}/${municipality}`, officeCode);
+      } else if (governor) this.polling.activate(config, election, scope, officeCode);
     } catch (error: unknown) {
       if (this.municipalityController === controller) {
         if (error instanceof TseRequestError && error.status === 429) this.polling.rateLimited(error);
@@ -109,19 +113,19 @@ export class PresidentComponent implements OnDestroy {
   }
   selectMunicipality(event: Event): void {
     const code = (event.target as HTMLSelectElement).value;
-    const path = this.governor() ? ['/governador', 'uf', this.scope()] : ['/uf', this.scope()];
+    const path = this.stateOffice() ? [this.senator() ? '/senador' : '/governador', 'uf', this.scope()] : ['/uf', this.scope()];
     void this.router?.navigate(code ? [...path, 'municipio', code] : path);
   }
   selectScope(event: Event): void {
     const scope = (event.target as HTMLSelectElement).value;
-    void this.router?.navigate(this.governor() ? scope === 'br' ? ['/governador'] : ['/governador', 'uf', scope] : scope === 'br' ? ['/'] : ['/uf', scope]);
+    void this.router?.navigate(this.stateOffice() ? scope === 'br' ? ['/'] : [this.senator() ? '/senador' : '/governador', 'uf', scope] : scope === 'br' ? ['/'] : ['/uf', scope]);
   }
   selectElection(event: Event): void {
     this.selectedId.set((event.target as HTMLSelectElement).value);
   }
   refresh(): void {
     const config = this.elections.configuration(), election = this.selected();
-    if ((this.municipalitiesError() || (this.governor() && this.scope() === 'br')) && config && election) void this.activate(config, election, this.scope(), this.municipalityCode());
+    if ((this.municipalitiesError() || (this.stateOffice() && this.scope() === 'br')) && config && election) void this.activate(config, election, this.scope(), this.municipalityCode());
     else void this.polling.refresh();
   }
   selectInterval(event: Event): void {

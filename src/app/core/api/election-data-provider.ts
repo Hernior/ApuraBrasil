@@ -5,6 +5,7 @@ import { Election, ElectionConfiguration } from '../models/election.model';
 import { ElectionResult } from '../models/election-result.model';
 
 export interface ElectionDataProvider {
+  loadSenator(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string): Promise<ElectionResult>;
   loadGovernor(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string): Promise<ElectionResult>;
   loadMunicipalities(config: ElectionConfiguration, election: Election, signal: AbortSignal): Promise<Municipality[]>;
   loadConfiguration(signal: AbortSignal): Promise<ElectionConfiguration>;

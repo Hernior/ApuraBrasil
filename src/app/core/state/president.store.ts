@@ -12,9 +12,9 @@ export class PresidentStore {
   readonly error = signal<string | null>(null);
   readonly failure = signal<unknown>(null);
 
-  async load(config: ElectionConfiguration, election: Election, scope = 'br'): Promise<boolean> {
+  async load(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' = election.kind === 'state' ? '3' : '1'): Promise<boolean> {
     this.controller?.abort();
-    if (this.result()?.electionId !== election.id || this.result()?.scopeCode !== scope) this.result.set(null);
+    if (this.result()?.electionId !== election.id || this.result()?.scopeCode !== scope || (this.result()?.officeCode ?? '1') !== officeCode) this.result.set(null);
     const controller = new AbortController();
     this.controller = controller;
     this.error.set(null);
@@ -27,7 +27,8 @@ export class PresidentStore {
     this.loading.set(true);
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const result = election.kind === 'state' ? await this.provider.loadGovernor(config, election, controller.signal, scope)
+      const result = officeCode === '5' ? await this.provider.loadSenator(config, election, controller.signal, scope)
+        : election.kind === 'state' ? await this.provider.loadGovernor(config, election, controller.signal, scope)
         : await this.provider.loadPresident(config, election, controller.signal, scope);
       if (this.controller === controller) { this.result.set(result); return true; }
       return false;
@@ -36,7 +37,7 @@ export class PresidentStore {
         this.failure.set(error);
         this.error.set(controller.signal.aborted ? 'A consulta excedeu o tempo limite ou foi interrompida.'
           : error instanceof TypeError ? 'Falha de conexão ao TSE ou bloqueio de acesso pelo navegador.'
-          : error instanceof Error ? error.message : `Não foi possível consultar ${election.kind === 'state' ? 'Governador' : 'Presidente'}.`);
+          : error instanceof Error ? error.message : 'Não foi possível consultar o resultado eleitoral.');
       }
       return false;
     } finally {

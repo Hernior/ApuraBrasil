@@ -9,6 +9,7 @@ export const testConfiguration: ElectionConfiguration = {
   generatedDate: '04/10/2026', generatedTime: '17:00:00', generationId: '1',
   phase: 'o', elections: [testElection],
   directories: [
+    { type: 'ab', template: '<base>/<ambiente>/<ciclo>/<cd_eleicao>/dados/<uf>' },
     { type: 'u', template: '<base>/<ambiente>/<ciclo>/<cd_eleicao>/dados/<uf>' },
     { type: 'ft', template: '<base>/<ambiente>/<ciclo>/<cd_eleicao>/fotos/<uf>' }
   ]
@@ -27,5 +28,15 @@ export function presidentFixture() {
         { sqcand: '902', n: '91', nm: 'Nome B', nmu: 'Teste B', seq: '1', e: 's', st: '2º turno', dvt: 'Válido', vap: '40', pvap: '57,14', pvapn: '57,142857143' }
       ] }] }]
     }]
+  };
+}
+
+export function trackingFixture() {
+  return {
+    ele: '42', t: '1', f: 'o', idg: '500', dg: '04/10/2026', hg: '17:00:00',
+    abr: [
+      { tpabr: 'br', cdabr: 'br', and: 'p', dt: '04/10/2026', ht: '16:59:00', s: { st: '50' }, e: { c: '80' } },
+      { tpabr: 'uf', cdabr: 'al', and: 'p', dt: '04/10/2026', ht: '16:59:00', s: { st: '10' }, e: { c: '15' } }
+    ]
   };
 }

@@ -1,3 +1,5 @@
+import { parseEA14 } from '../../core/api/ea14-parser';
+import { trackingFixture } from '../../core/api/president-test.fixture';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ELECTION_DATA_PROVIDER } from '../../core/api/election-data-provider';
@@ -12,7 +14,7 @@ describe('PresidentComponent', () => {
     loadPresident = jasmine.createSpy().and.resolveTo(parsePresidentEA20(presidentFixture(), '42', 1));
     TestBed.configureTestingModule({
       imports: [PresidentComponent],
-      providers: [provideNoopAnimations(), { provide: ELECTION_DATA_PROVIDER, useValue: { loadPresident } }]
+      providers: [provideNoopAnimations(), { provide: ELECTION_DATA_PROVIDER, useValue: { loadPresident, loadTracking: async () => parseEA14(trackingFixture(), '42', 1) } }]
     });
     TestBed.inject(ElectionStore).configuration.set(testConfiguration);
   });

@@ -10,11 +10,15 @@
           }
         </select>
       </label>
-      <button matButton="outlined" [disabled]="president.loading()" (click)="refresh()">Atualizar Presidente</button>
+      <label class="election-select"><span>Atualização</span><select [value]="polling.interval()" (change)="selectInterval($event)"><option value="15000">15 segundos</option><option value="30000">30 segundos</option><option value="60000">60 segundos</option><option value="0">Manual</option></select></label>
+      <button matButton="outlined" [disabled]="polling.checking()" (click)="refresh()">Atualizar Presidente</button>
     }
   </div>
-  <div aria-live="polite" [attr.aria-busy]="president.loading()">
-    @if (president.loading()) { <p>Consultando a apuração nacional no TSE…</p> }
+  <div aria-live="polite" [attr.aria-busy]="polling.checking()">
+    @if (polling.live()) { <p class="live">AO VIVO</p> }
+    @if (polling.suspended()) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
+    @if (polling.message(); as message) { <p role="status">{{ message }}</p> }
+    @if (polling.checking()) { <p>Consultando a apuração nacional no TSE…</p> }
     @if (president.error(); as error) {
       <p role="alert">{{ error }}</p>
       @if (president.result()) { <p>Exibindo os últimos dados recebidos. A atualização falhou.</p> }
@@ -74,7 +78,7 @@
           </mat-card>
         } @empty { <p>Nenhum candidato foi disponibilizado neste arquivo.</p> }
       </div>
-    } @else if (!president.loading()) {
+    } @else if (!polling.checking()) {
       <p>Nenhum resultado eleitoral foi recebido para Presidente.</p>
     }
   </div>

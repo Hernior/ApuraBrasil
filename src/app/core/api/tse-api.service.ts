@@ -1,3 +1,5 @@
+import { parseEA14 } from './ea14-parser';
+import { TseRequestError, retryAfterMilliseconds } from './tse-request-error';
 import { Election, ElectionConfiguration } from '../models/election.model';
 import { parsePresidentEA20 } from './ea20-parser';
 import { inject, Injectable } from '@angular/core';
@@ -15,7 +17,7 @@ export class TseApiService implements ElectionDataProvider {
     const response = await fetch(this.urls.configurationUrl(), { signal, credentials: 'omit', cache: 'no-cache' });
     if (response.status === 404) throw new Error('A configuração das eleições ainda não está disponível no TSE (404).');
     if (response.status === 429) throw new Error('Limite de consultas atingido (429). Aguarde antes de tentar novamente.');
-    if (!response.ok) throw new Error(`O TSE respondeu com HTTP ${response.status}.`);
+    if (!response.ok) throw new TseRequestError(response.status, `O TSE respondeu com HTTP ${response.status}.`);
     const configuration = this.parser.parseEA11(await response.json() as unknown);
     if (environment.production && configuration.phase !== 'o') {
       throw new Error('Configuração de simulado recusada no ambiente de produção.');
@@ -25,14 +27,22 @@ export class TseApiService implements ElectionDataProvider {
 
   async loadPresident(config: ElectionConfiguration, election: Election, signal: AbortSignal) {
     const response = await fetch(this.urls.presidentUrl(config, election), { signal, credentials: 'omit', cache: 'no-cache' });
-    if (response.status === 404) throw new Error('Resultado de Presidente ainda não disponível no TSE (404).');
-    if (response.status === 429) throw new Error('Limite de consultas atingido (429). Aguarde antes de atualizar.');
-    if (!response.ok) throw new Error(`O TSE respondeu com HTTP ${response.status}.`);
+    if (response.status === 404) throw new TseRequestError(404, 'Resultado de Presidente ainda não disponível no TSE (404).');
+    if (response.status === 429) throw new TseRequestError(429, 'Limite de consultas atingido (429). Aguarde antes de atualizar.', retryAfterMilliseconds(response.headers.get('Retry-After')));
+    if (!response.ok) throw new TseRequestError(response.status, `O TSE respondeu com HTTP ${response.status}.`);
     const result = parsePresidentEA20(await response.json() as unknown, election.id, election.round);
     if (environment.production && result.phase !== 'o') throw new Error('Resultado de simulado recusado em produção.');
     result.candidates = result.candidates.map(candidate => ({
       ...candidate, photoUrl: this.urls.candidatePhotoUrl(config, election, candidate.id)
     }));
+    return result;
+  }
+
+  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal) {
+    const response = await fetch(this.urls.trackingUrl(config, election), { signal, credentials: 'omit', cache: 'no-cache' });
+    if (!response.ok) throw new TseRequestError(response.status, `Acompanhamento do TSE indisponível (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
+    const result = parseEA14(await response.json() as unknown, election.id, election.round);
+    if (environment.production && result.phase !== 'o') throw new Error('Acompanhamento de simulado recusado em produção.');
     return result;
   }
 }

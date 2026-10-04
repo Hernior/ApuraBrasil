@@ -1,3 +1,4 @@
+import { ElectionPollingService } from '../../core/services/election-polling.service';
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +16,7 @@ import { PresidentStore } from '../../core/state/president.store';
 export class PresidentComponent implements OnDestroy {
   readonly elections = inject(ElectionStore);
   readonly president = inject(PresidentStore);
+  readonly polling = inject(ElectionPollingService);
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());
   readonly available = computed(() => this.elections.elections().filter(e =>
@@ -26,26 +28,21 @@ export class PresidentComponent implements OnDestroy {
       const config = this.elections.configuration();
       const election = this.selected();
       if (config && election) {
-        untracked(() => { void this.president.load(config, election); });
+        untracked(() => { this.polling.activate(config, election); });
       } else if (config) {
-        untracked(() => { this.president.cancel(); this.president.result.set(null); });
+        untracked(() => { this.polling.stop(); this.president.result.set(null); });
       }
     });
   }
   selectElection(event: Event): void {
     this.selectedId.set((event.target as HTMLSelectElement).value);
   }
-  refresh(): void {
-    const config = this.elections.configuration();
-    const election = this.selected();
-    if (config && election) {
-        untracked(() => { void this.president.load(config, election); });
-      } else if (config) {
-        untracked(() => { this.president.cancel(); this.president.result.set(null); });
-      }
+  refresh(): void { void this.polling.refresh(); }
+  selectInterval(event: Event): void {
+    this.polling.setInterval(Number((event.target as HTMLSelectElement).value));
   }
   photoFailed(id: string): void {
     this.failedPhotos.update(ids => new Set([...ids, id]));
   }
-  ngOnDestroy(): void { this.president.cancel(); }
+  ngOnDestroy(): void { this.polling.stop(); }
 }

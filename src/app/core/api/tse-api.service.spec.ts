@@ -1,3 +1,5 @@
+import { trackingFixture } from './president-test.fixture';
+import { TseRequestError } from './tse-request-error';
 import { presidentFixture, testConfiguration, testElection } from './president-test.fixture';
 import { TestBed } from '@angular/core/testing';
 import { TseApiService } from './tse-api.service';
@@ -49,4 +51,21 @@ describe('TseApiService President', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
   }
+});
+
+describe('EA14 API', () => {
+  it('loads and validates tracking and propagates Retry-After for HTTP 429', async () => {
+    const api = TestBed.inject(TseApiService);
+    const fetchSpy = spyOn(window, 'fetch');
+    fetchSpy.and.resolveTo(new Response(JSON.stringify(trackingFixture()), { status: 200 }));
+    expect((await api.loadTracking(testConfiguration, testElection, new AbortController().signal)).national.processedSections).toBe(50);
+    fetchSpy.and.resolveTo(new Response('', { status: 429, headers: { 'Retry-After': '900' } }));
+    try {
+      await api.loadTracking(testConfiguration, testElection, new AbortController().signal);
+      fail('HTTP 429 should reject');
+    } catch (error: unknown) {
+      expect(error instanceof TseRequestError).toBeTrue();
+      expect((error as TseRequestError).retryAfterMs).toBe(900000);
+    }
+  });
 });

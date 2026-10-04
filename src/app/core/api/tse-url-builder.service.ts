@@ -37,4 +37,11 @@ export class TseUrlBuilderService {
     const directory = this.directory(config, election, 'ft');
     return directory ? `${directory}/${candidateId}.jpeg` : null;
   }
+
+  trackingUrl(config: ElectionConfiguration, election: Election): string {
+    if (!/^\d{1,6}$/.test(election.id)) throw new Error('Código de eleição inválido.');
+    const directory = this.directory(config, election, 'ab');
+    if (!directory) throw new Error('Diretório EA14 ausente no EA11.');
+    return `${directory}/br-e${election.id.padStart(6, '0')}-ab.json`;
+  }
 }

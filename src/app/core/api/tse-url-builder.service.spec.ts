@@ -32,3 +32,10 @@ describe('President URLs from EA11', () => {
     expect(() => builder.presidentUrl(testConfiguration, { ...testElection, kind: 'state' })).toThrow();
   });
 });
+
+describe('EA14 URL', () => {
+  it('uses ab directory with a six-digit election filename', () => {
+    expect(new TseUrlBuilderService().trackingUrl(testConfiguration, testElection))
+      .toBe('https://resultados.tse.jus.br/oficial/ele2026/42/dados/br/br-e000042-ab.json');
+  });
+});

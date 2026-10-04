@@ -4,9 +4,9 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 ## Estado desta entrega
 
-Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional consulta o EA20 oficial, com atualização manual; não há resultados fictícios.
+Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Resultados por UF e município, demais cargos, polling, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
+Resultados por UF e município, demais cargos, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
 
 ## Requisitos e execução
 
@@ -65,7 +65,7 @@ Há timeout de 15 segundos, cancelamento ao destruir a tela, prevenção de cons
 - EA11 oficial respondeu HTTP 200 com `Access-Control-Allow-Origin: https://hernior.github.io` à requisição com essa origem.
 - Uma consulta real com fetch em ChromeHeadless, a partir de localhost (Karma), retornou JSON legível e foi processada com sucesso.
 - A verificação live ficou separada dos testes unitários, que não acessam o TSE.
-- Isso valida o acesso ao EA11 nas condições testadas; EA12, EA14 e EA15 ainda precisam de verificações próprias. O EA20 nacional de Presidente foi verificado na entrega seguinte. O portal publicado no GitHub Pages ainda não foi testado.
+- Isso valida o acesso ao EA11 nas condições testadas; EA12 e EA15 ainda precisam de verificações próprias. O EA14 foi validado na implementação de atualização automática. O EA20 nacional de Presidente foi verificado na entrega seguinte. O portal publicado no GitHub Pages ainda não foi testado.
 
 ## Ambientes
 
@@ -96,13 +96,35 @@ As fotos utilizam `arq[tp=ft].dir` e `sqcand.jpeg`; se a foto estiver ausente ou
 - Se `dv=n`, a votação e os percentuais são ocultados, sem apresentar zeros como apuração real.
 - Seções usam `s.st`, `s.ts` e `s.pstn/pst`. Indicadores usam `v.vv`, `v.vb` e `v.tvn` (incluindo nulos técnicos), além de comparecimento e abstenção em `e`.
 - Valores ausentes aparecem como “—”; zeros publicados permanecem zero.
-- A geração (`dg/hg`) e a totalização (`dt/ht`) aparecem separadamente. Não há selo AO VIVO enquanto não existir atualização automática.
+- A geração (`dg/hg`) e a totalização (`dt/ht`) aparecem separadamente. O selo AO VIVO segue os critérios descritos na seção de atualização automática.
 - Resultado de eleição, turno, cargo ou abrangência diferentes é rejeitado. Produção recusa fase de simulado.
 
-Consulta automática ocorre uma vez após a descoberta; novas consultas são manuais. A troca de eleição cancela a consulta anterior e respostas antigas não substituem os dados atuais. Timeout de 15 segundos, offline, HTTP 404/429 e falhas de rede possuem mensagens próprias. Falhas de atualização preservam os últimos dados do mesmo turno; a troca de eleição remove os dados anteriores.
+As consultas de Presidente são coordenadas pelo serviço de atualização automática descrito abaixo. A troca de eleição cancela a consulta anterior e respostas antigas não substituem os dados atuais. Timeout de 15 segundos, offline, HTTP 404/429 e falhas de rede possuem mensagens próprias. Falhas de atualização preservam os últimos dados do mesmo turno; a troca de eleição remove os dados anteriores.
 
 ### Verificação de acesso
 
 Em 04/10/2026, o EA20 nacional descoberto pelo EA11 respondeu HTTP 200 e autorizou `https://hernior.github.io` no cabeçalho CORS. Um teste separado em ChromeHeadless executou EA11 → EA20 → renderização de candidatos com dados oficiais reais, com sucesso. Os testes unitários não consultam o TSE. Publicação no GitHub Pages e validação visual em celulares ainda não foram realizadas.
 
-Esta etapa não adiciona polling, snapshots, banco de dados, mapas, gráficos de evolução ou resultados estaduais.
+Esta etapa não adiciona snapshots, banco de dados, mapas, gráficos de evolução ou resultados estaduais.
+
+## Atualização automática de Presidente com EA14
+
+Baseada no [EA14 de 10/06/2026](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea14-arquivo-de-acompanhamento-brasil) e no FAQ técnico do TSE.
+
+- Intervalo padrão de 15 segundos, com opções 30s, 60s e Manual. Valores fora dessas opções são recusados, inclusive intervalos inferiores a 10s.
+- Após cada consulta concluída, agenda a próxima; nunca sobrepõe ciclos.
+- Consulta o EA14 da eleição federal selecionada. A assinatura compara abrangências ordenadas, datas/horas de totalização, andamento e indicadores de seções/eleitores. Mudanças apenas em idg, ordem de abrangências ou ordem de propriedades não provocam consulta ao EA20.
+- EA20 é buscado na carga inicial, quando há alteração, numa atualização manual ou ao retornar à aplicação.
+- O marcador fica pendente enquanto o EA20 não acompanha a data/hora nacional, o número de seções ou a finalização indicada pelo EA14. Se a alteração ainda retorna a mesma geração anterior do EA20, também permanece pendente. Isso evita consumir uma indicação nova e congelar o resultado antigo por atraso da CDN.
+- As requisições usam cache browser com revalidação (`cache: no-cache`), sem cabeçalhos condicionais personalizados que poderiam exigir preflight. Não há cache persistente de resultados nesta etapa.
+- Aba oculta ou offline cancela a consulta e os timers. Ao voltar ou reconectar, atualiza imediatamente, inclusive no modo Manual, respeitando eventuais bloqueios.
+- EA14 e EA20 têm timeout de 15 segundos por requisição. A troca de eleição ou destruição do componente cancela a operação, e respostas antigas não substituem o contexto atual.
+- Erros de rede, timeout e HTTP 5xx usam intervalos progressivos de 30s, 60s, 120s etc., limitados a 10 minutos. O intervalo selecionado permanece um mínimo.
+- HTTP 404 adia as novas consultas por pelo menos 60s, aumentando até 10 minutos em falhas repetidas.
+- HTTP 429 pausa por pelo menos 10 minutos, aumenta o tempo em falhas repetidas e respeita Retry-After quando o navegador consegue lê-lo. A atualização manual e eventos de visibilidade também respeitam essa pausa.
+- Erro de layout ou configuração suspende a atualização automática e mostra a causa; o usuário pode tentar novamente manualmente.
+- “AO VIVO” exige modo automático ativo, dados oficiais divulgáveis, totalização em andamento, uma nova geração recebida recentemente e arquivo gerado nos últimos 90s (horário de Brasília, tolerância de 60s para relógio adiantado). O selo é removido durante pausa, falha, espera de sincronização, modo manual ou quando deixa de cumprir esses critérios.
+
+EA14 nacional foi verificado com HTTP 200 e CORS para a origem GitHub Pages em 04/10/2026. Uma verificação separada em ChromeHeadless executou a carga inicial e um segundo ciclo agendado após 15s usando EA11, EA14 e EA20 oficiais. Testes unitários usam fixtures e relógio simulado, sem consultar o TSE nem provocar erros 429 reais.
+
+Esta entrega acompanha apenas Presidente nacional. EA15, consultas por UF/município, fila geral de concorrência, IndexedDB e snapshots permanecem para próximas etapas. Não altera schema nem grava em banco de dados.

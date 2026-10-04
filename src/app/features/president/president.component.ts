@@ -6,6 +6,7 @@ import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
 import { ElectionStore } from '../../core/state/election.store';
 import { PresidentStore } from '../../core/state/president.store';
 import { ELECTION_DATA_PROVIDER } from '../../core/api/election-data-provider';
@@ -15,7 +16,7 @@ import { TseRequestError } from '../../core/api/tse-request-error';
 
 @Component({
   selector: 'app-president',
-  imports: [DecimalPipe, MatButtonModule, MatCardModule],
+  imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule],
   templateUrl: './president.component.html',
   styleUrl: './president.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -27,9 +28,11 @@ export class PresidentComponent implements OnDestroy {
   private readonly routeData = toSignal(this.route?.data ?? of<Data>({}));
   readonly governor = computed(() => this.routeData()?.['office'] === 'governor');
   readonly senator = computed(() => this.routeData()?.['office'] === 'senator');
-  readonly stateOffice = computed(() => this.governor() || this.senator());
-  readonly officeCode = computed<'1' | '3' | '5'>(() => this.senator() ? '5' : this.governor() ? '3' : '1');
-  readonly officeName = computed(() => this.senator() ? 'Senador' : this.governor() ? 'Governador' : 'Presidente');
+  readonly federalDeputy = computed(() => this.routeData()?.['office'] === 'federal-deputy');
+  readonly stateOffice = computed(() => this.governor() || this.senator() || this.federalDeputy());
+  readonly officeCode = computed<'1' | '3' | '5' | '6'>(() => this.federalDeputy() ? '6' : this.senator() ? '5' : this.governor() ? '3' : '1');
+  readonly officeName = computed(() => this.federalDeputy() ? 'Deputado Federal' : this.senator() ? 'Senador' : this.governor() ? 'Governador' : 'Presidente');
+  readonly statePath = computed(() => this.federalDeputy() ? '/deputado-federal' : this.senator() ? '/senador' : '/governador');
   readonly heading = computed(() => this.stateOffice() ? this.officeName() : 'Presidente da República');
   readonly scope = computed(() => this.params()?.get('uf')?.toLowerCase() ?? 'br');
   readonly municipalityCode = computed(() => this.params()?.get('codigo') ?? '');
@@ -44,10 +47,17 @@ export class PresidentComponent implements OnDestroy {
   readonly elections = inject(ElectionStore);
   readonly president = inject(PresidentStore);
   readonly polling = inject(ElectionPollingService);
+  readonly allocationResult = computed(() => { const result = this.president.result(); return this.federalDeputy() ? result?.stateResult ?? result : null; });
+  readonly allocation = computed(() => this.allocationResult()?.allocation);
+  readonly calculatedWinners = computed(() => new Set(this.allocation()?.winners.map(w => w.candidateId) ?? []));
+  readonly statewideCandidates = computed(() => new Map(this.allocationResult()?.candidates.map(c => [c.id, c]) ?? []));
+  officialStatus(id: string, localStatus: string | null): string {
+    return (this.federalDeputy() ? this.statewideCandidates().get(id)?.status : localStatus) || 'Ainda não informada pelo TSE';
+  }
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());
   readonly available = computed(() => this.elections.elections().filter(e =>
-    (!this.senator() || e.round === 1) && e.kind === (this.stateOffice() ? 'state' : 'federal') && e.scopes.some(s =>
+    (!(this.senator() || this.federalDeputy()) || e.round === 1) && e.kind === (this.stateOffice() ? 'state' : 'federal') && e.scopes.some(s =>
       (this.stateOffice() ? s.code === 'br' || this.scope() === 'br' || s.code === this.scope() : s.code === 'br') &&
       s.offices.some(o => Number(o.code) === Number(this.officeCode())))));
   readonly selected = computed(() => this.available().find(e => e.id === this.selectedId()) ?? this.available()[0] ?? null);
@@ -113,12 +123,12 @@ export class PresidentComponent implements OnDestroy {
   }
   selectMunicipality(event: Event): void {
     const code = (event.target as HTMLSelectElement).value;
-    const path = this.stateOffice() ? [this.senator() ? '/senador' : '/governador', 'uf', this.scope()] : ['/uf', this.scope()];
+    const path = this.stateOffice() ? [this.statePath(), 'uf', this.scope()] : ['/uf', this.scope()];
     void this.router?.navigate(code ? [...path, 'municipio', code] : path);
   }
   selectScope(event: Event): void {
     const scope = (event.target as HTMLSelectElement).value;
-    void this.router?.navigate(this.stateOffice() ? scope === 'br' ? ['/'] : [this.senator() ? '/senador' : '/governador', 'uf', scope] : scope === 'br' ? ['/'] : ['/uf', scope]);
+    void this.router?.navigate(this.stateOffice() ? scope === 'br' ? ['/'] : [this.statePath(), 'uf', scope] : scope === 'br' ? ['/'] : ['/uf', scope]);
   }
   selectElection(event: Event): void {
     this.selectedId.set((event.target as HTMLSelectElement).value);

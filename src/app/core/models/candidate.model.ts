@@ -1,4 +1,6 @@
 export interface Candidate {
+  birthDate?: string | null;
+  partyVoteDestination?: string | null;
   substitutes?: { type: 's1' | 's2'; name: string; party: string }[];
   id: string;
   number: string;

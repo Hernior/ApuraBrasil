@@ -12,7 +12,7 @@ export class PresidentStore {
   readonly error = signal<string | null>(null);
   readonly failure = signal<unknown>(null);
 
-  async load(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' = election.kind === 'state' ? '3' : '1'): Promise<boolean> {
+  async load(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' | '6' = election.kind === 'state' ? '3' : '1'): Promise<boolean> {
     this.controller?.abort();
     if (this.result()?.electionId !== election.id || this.result()?.scopeCode !== scope || (this.result()?.officeCode ?? '1') !== officeCode) this.result.set(null);
     const controller = new AbortController();
@@ -27,7 +27,8 @@ export class PresidentStore {
     this.loading.set(true);
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const result = officeCode === '5' ? await this.provider.loadSenator(config, election, controller.signal, scope)
+      const result = officeCode === '6' ? await this.provider.loadFederalDeputy(config, election, controller.signal, scope)
+        : officeCode === '5' ? await this.provider.loadSenator(config, election, controller.signal, scope)
         : election.kind === 'state' ? await this.provider.loadGovernor(config, election, controller.signal, scope)
         : await this.provider.loadPresident(config, election, controller.signal, scope);
       if (this.controller === controller) { this.result.set(result); return true; }

@@ -61,5 +61,5 @@
 <footer>
   <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
   <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização recebida do TSE: @if (president.result(); as result) { {{ result.officeCode === '5' ? 'Senador' : result.officeCode === '3' ? 'Governador' : 'Presidente' }} · {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
+  <p>Última atualização recebida do TSE: @if (president.result(); as result) { {{ result.officeCode === '6' ? 'Deputado Federal' : result.officeCode === '5' ? 'Senador' : result.officeCode === '3' ? 'Governador' : 'Presidente' }} · {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
 </footer>

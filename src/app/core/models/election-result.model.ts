@@ -1,7 +1,14 @@
 import { Candidate } from './candidate.model';
+import { ProportionalAllocation, ProportionalGroup } from './proportional.model';
 
 export interface ElectionResult {
-  officeCode?: '1' | '3' | '5';
+  officeCode?: '1' | '3' | '5' | '6';
+  finalTotalization?: boolean;
+  noWinners?: boolean | null;
+  officialQuotient?: number | null;
+  proportionalGroups?: ProportionalGroup[];
+  allocation?: ProportionalAllocation;
+  stateResult?: ElectionResult;
   seats?: number | null;
   electionId: string;
   scopeCode: string;

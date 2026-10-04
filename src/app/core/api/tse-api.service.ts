@@ -3,7 +3,8 @@ import { parseEA15 } from './ea15-parser';
 import { Municipality, parseEA12 } from './municipality-parser';
 import { TseRequestError, retryAfterMilliseconds } from './tse-request-error';
 import { Election, ElectionConfiguration } from '../models/election.model';
-import { parseGovernorEA20, parsePresidentEA20, parseSenatorEA20 } from './ea20-parser';
+import { ElectionTracking } from '../models/election-tracking.model';
+import { parseFederalDeputyEA20, parseGovernorEA20, parsePresidentEA20, parseSenatorEA20 } from './ea20-parser';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { ElectionDataProvider } from './election-data-provider';
@@ -66,22 +67,27 @@ export class TseApiService implements ElectionDataProvider {
   async loadSenator(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
     return this.loadStateResult(config, election, signal, scope, '5');
   }
-  private async loadStateResult(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string, officeCode: '3' | '5') {
-    const officeName = officeCode === '3' ? 'Governador' : 'Senador';
-    const url = officeCode === '3' ? this.urls.governorUrl(config, election, scope) : this.urls.senatorUrl(config, election, scope);
+  async loadFederalDeputy(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
+    const result = await this.loadStateResult(config, election, signal, scope, '6');
+    if (scope.includes('/')) result.stateResult = await this.loadStateResult(config, election, signal, scope.split('/')[0]!, '6');
+    return result;
+  }
+  private async loadStateResult(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string, officeCode: '3' | '5' | '6') {
+    const officeName = officeCode === '3' ? 'Governador' : officeCode === '5' ? 'Senador' : 'Deputado Federal';
+    const url = officeCode === '3' ? this.urls.governorUrl(config, election, scope) : officeCode === '5' ? this.urls.senatorUrl(config, election, scope) : this.urls.federalDeputyUrl(config, election, scope);
     const [uf, municipality] = scope.split('/');
     const cities = await this.loadMunicipalities(config, election, signal);
     if (!cities.some(m => m.uf === uf && (!municipality || m.code === municipality))) throw new Error(`UF ou município de ${officeName} não disponível no EA12.`);
     const response = await fetch(url, { signal, credentials: 'omit', cache: 'no-cache' });
     if (!response.ok) throw new TseRequestError(response.status, `Resultado de ${officeName} indisponível (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
     const input: unknown = await response.json();
-    const result = officeCode === '3' ? parseGovernorEA20(input, election.id, election.round, scope) : parseSenatorEA20(input, election.id, election.round, scope);
+    const result = officeCode === '3' ? parseGovernorEA20(input, election.id, election.round, scope) : officeCode === '5' ? parseSenatorEA20(input, election.id, election.round, scope) : parseFederalDeputyEA20(input, election.id, election.round, scope);
     if (environment.production && result.phase !== 'o') throw new Error('Resultado de simulado recusado em produção.');
     result.candidates = result.candidates.map(candidate => ({ ...candidate, photoUrl: this.urls.candidatePhotoUrl(config, election, candidate.id, uf) }));
     return result;
   }
 
-  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
+  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br', officeCode?: '1' | '3' | '5' | '6'): Promise<ElectionTracking> {
     if (election.kind === 'state' && (!/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || /^(br|zz)(\/|$)/.test(scope) ||
         !election.scopes.some(s => s.code === 'br' || s.code === scope.split('/')[0]))) throw new Error('Abrangência estadual indisponível no EA11.');
     const [uf, municipality] = scope.split('/');
@@ -102,6 +108,10 @@ export class TseApiService implements ElectionDataProvider {
     const input: unknown = await response.json();
     const result = municipality ? parseEA15(input, trackingElection.id, election.round, uf, municipality) : parseEA14(input, election.id, election.round, scope);
     if (environment.production && result.phase !== 'o') throw new Error('Acompanhamento de simulado recusado em produção.');
+    if (municipality && officeCode === '6') {
+      const stateTracking = await this.loadTracking(config, election, signal, uf);
+      return { ...result, stateTracking, signature: JSON.stringify([result.signature, stateTracking.signature]) };
+    }
     return result;
   }
 }

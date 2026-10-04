@@ -9,10 +9,12 @@ export const routes: Routes = [
   { path: 'senador', redirectTo: '', pathMatch: 'full' },
   { path: 'senador/uf/:uf/municipio/:codigo', data: { office: 'senator' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'senador/uf/:uf', data: { office: 'senator' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
+  { path: 'deputado-federal', redirectTo: '', pathMatch: 'full' },
+  { path: 'deputado-federal/uf/:uf/municipio/:codigo', data: { office: 'federal-deputy' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
+  { path: 'deputado-federal/uf/:uf', data: { office: 'federal-deputy' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'uf/:uf/municipio/:codigo', loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'uf/:uf', loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   ...[
-    { path: 'deputado-federal', office: 'federal-deputy' },
     { path: 'deputado-estadual', office: 'state-deputy' }
   ].flatMap(tab => [
     { path: tab.path, redirectTo: '', pathMatch: 'full' as const },

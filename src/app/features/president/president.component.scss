@@ -17,7 +17,14 @@ progress { width: 100%; height: .65rem; accent-color: #155e75; }
 .photo { object-fit: cover; border-radius: .5rem; }
 .vote-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem; margin: 1rem 0 .5rem; }
 .vote-line strong { font-size: 1.7rem; }
-.status { font-size: .85rem; }
+.status { margin-top: 1rem; }
+.status mat-chip { height: auto; min-height: 32px; max-width: 100%; }
+.status .calculated-status { --mdc-chip-elevated-container-color: #dcfce7; }
+.status span { white-space: normal; }
+.allocation-summary { margin: 1rem 0; padding: 1rem; border: 1px solid #cbd5e1; border-radius: .75rem; }
+.allocation-table { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .6rem; text-align: left; border-bottom: 1px solid #cbd5e1; }
 .notice { background: #fff7ed; padding: 1rem; border-left: 3px solid #c2410c; }
 .election-select { display: grid; gap: .3rem; font-size: .85rem; }
 select { font: inherit; max-width: min(100%, 320px); padding: .7rem; border: 1px solid #64748b; border-radius: .4rem; background: #fff; color: #0f172a; }

@@ -14,15 +14,17 @@ export function resultCoversTracking(result: ElectionResult, tracking: ElectionT
   const marker = timestamp(tracking.national.date, tracking.national.time);
   return (!marker || timestamp(result.totalizationDate, result.totalizationTime) >= marker) &&
     (tracking.national.processedSections === null || (result.processedSections ?? -1) >= tracking.national.processedSections) &&
-    (tracking.national.progress !== 'f' || result.progress === 'f');
+    (tracking.national.progress !== 'f' || result.progress === 'f') &&
+    (!tracking.stateTracking || (!!result.stateResult && resultCoversTracking(result.stateResult, tracking.stateTracking)));
 }
+function generation(result: ElectionResult | null | undefined): string { return result ? `${result.generationId}:${result.stateResult?.generationId ?? ''}` : ''; }
 
 @Injectable({ providedIn: 'root' })
 export class ElectionPollingService {
   private readonly provider = inject(ELECTION_DATA_PROVIDER);
   private readonly president = inject(PresidentStore);
   private readonly zone = inject(NgZone);
-  private context: { config: ElectionConfiguration; election: Election; scope: string; officeCode: '1' | '3' | '5' } | null = null;
+  private context: { config: ElectionConfiguration; election: Election; scope: string; officeCode: '1' | '3' | '5' | '6' } | null = null;
   private controller: AbortController | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private signature: string | null = null;
@@ -59,7 +61,7 @@ export class ElectionPollingService {
     }
   };
 
-  activate(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' = election.kind === 'state' ? '3' : '1'): void {
+  activate(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' | '6' = election.kind === 'state' ? '3' : '1'): void {
     this.stop();
     this.context = { config, election, scope, officeCode };
     if (this.president.result()?.electionId !== election.id || this.president.result()?.scopeCode !== scope || (this.president.result()?.officeCode ?? '1') !== officeCode) this.president.result.set(null);
@@ -137,7 +139,7 @@ export class ElectionPollingService {
     this.suspended.set(false);
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const tracking = await this.provider.loadTracking(context.config, context.election, controller.signal, context.scope);
+      const tracking = await this.provider.loadTracking(context.config, context.election, controller.signal, context.scope, context.officeCode);
       clearTimeout(timeout);
       if (this.controller !== controller) return;
       if (!context.scope.includes('/')) this.availableStates.set(tracking.availableStates);
@@ -150,13 +152,13 @@ export class ElectionPollingService {
         if (!ok) throw this.president.failure() ?? new TypeError('Falha na atualização do resultado eleitoral.');
         const result = this.president.result()!;
         if (resultCoversTracking(result, tracking) &&
-            (force || this.signature === null || result.generationId !== previous?.generationId)) {
+            (force || this.signature === null || generation(result) !== generation(previous))) {
           this.signature = tracking.signature;
           this.message.set(null);
         } else {
           this.message.set('Aguardando a sincronização dos arquivos do TSE.');
         }
-        if (result.generationId !== previous?.generationId) this.lastResultAt.set(Date.now());
+        if (generation(result) !== generation(previous)) this.lastResultAt.set(Date.now());
       } else {
         this.message.set(null);
       }

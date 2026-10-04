@@ -6,7 +6,7 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional e por UF consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Presidente, Governador e Senador incluem resultados por UF e município. Deputados, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
+Presidente, Governador, Senador e Deputado Federal incluem resultados por UF e município. Deputado Federal calcula a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. Deputado Estadual/Distrital, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
 
 ## Requisitos e execução
 
@@ -180,30 +180,42 @@ Em 04/10/2026, uma verificação pontual em ChromeHeadless abriu Governador de A
 
 Em 04/10/2026, os EA20 de Senador de AL e Maceió responderam HTTP 200 com CORS para a origem GitHub Pages. Uma verificação separada em ChromeHeadless abriu as duas rotas com EA11, EA12, EA14, EA15 e EA20 oficiais e confirmou cargo 5 e duas vagas. A suíte permanente possui 98 testes sem acesso ao TSE. A verificação pontual não cobre todas as UFs e municípios nem o site publicado.
 
+## Deputado Federal por UF e município e cálculo de vagas
+
+- Usa os filtros estaduais compartilhados. Rotas: `/#/deputado-federal/uf/al` e `/#/deputado-federal/uf/al/municipio/27855`. A eleição estadual de primeiro turno, o cargo `0006`, as vagas e os diretórios são descobertos nos arquivos do TSE, sem IDs fixos.
+- O município mostra sua votação local e consulta também o resultado da UF para calcular vagas e apresentar a situação estadual dos candidatos. O cálculo nunca utiliza apenas votos municipais. Fotos vêm do diretório da UF.
+- Regras baseadas nos arts. 8 a 12-A da [Resolução TSE nº 23.677, texto compilado com alterações de 2026](https://www.tse.jus.br/legislacao/compilada/res/2021/resolucao-no-23-677-de-16-de-dezembro-de-2021) e no [layout EA20](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea20-arquivo-de-resultado-unificado). O quociente eleitoral considera os votos válidos nominais e de legenda, arredondando a fração somente se maior que 0,5.
+- Cada federação funciona como uma lista única. O QP é a divisão inteira dos votos válidos do agrupamento pelo QE. A primeira distribuição exige votação nominal mínima de 10% do QE. As sobras usam maiores médias, com os limites de 80% para agrupamentos e 20% para candidatos; esgotada essa etapa, todos participam das sobras restantes sem esses limites. O denominador inclui QP e sobras anteriores, inclusive vagas do QP não preenchidas.
+- As médias são comparadas com aritmética inteira exata. Empates entre agrupamentos consideram votos totais e depois votos nominais do candidato à vaga; empates dentro da lista consideram idade. Empate ainda indefinido, dados ausentes ou totais inconsistentes suspendem o cálculo e mostram a causa, preservando a votação recebida. Votos anulados, anulados sub judice e candidatos com votos destinados à legenda não elegem candidatos pelo cálculo.
+- A tabela apresenta QE, QP, votos válidos e vagas calculadas por agrupamento, ao lado das vagas informadas pelo TSE. Os candidatos selecionados recebem o chip **Provisoriamente na faixa de eleição**; somente após a totalização final estadual (`tf=s`, `and=f`, `esae=n`) recebem **Eleito pelo cálculo**. Se o TSE informa ausência de atribuição de eleitos, o cálculo fica indisponível.
+- A situação oficial permanece exatamente como publicada em `st`, em chip Angular Material separado. Os chips de situação também são usados nos demais cargos implementados. O cálculo não altera a situação oficial e não representa proclamação da Justiça Eleitoral.
+- UF acompanha EA14. Município acompanha seu registro no EA15 e o registro da UF no EA14, pois mudanças estaduais também alteram as vagas. O acompanhamento exige que ambos os resultados cubram os respectivos marcadores; mudanças somente na geração estadual também atualizam o cálculo. Consultas são canceladas ao trocar cargo ou abrangência e respeitam a pausa compartilhada por HTTP 429. Alterações exclusivamente nos votos sem mudança nos marcadores podem exigir atualização manual.
+
+Em 04/10/2026, uma verificação separada em ChromeHeadless abriu AL e Maceió com dados oficiais reais, exibiu chips e comparou o quociente e as vagas calculadas por agrupamento com os valores publicados pelo TSE: coincidiram nas duas rotas. O EA20 de AL também respondeu HTTP 200 com CORS para a origem GitHub Pages. A suíte permanente possui 121 testes sem consultar o TSE. Essa verificação pontual não cobre todas as UFs, empates reais, decisões judiciais futuras ou o site publicado. Não há alterações de schema nem gravações em banco.
+
 ## Abas de cargos e filtros federal e estadual
 
 - Navegação em abas Angular Material: Presidente, Governador, Senador, Dep. Federal e Dep. Estadual. Dois seletores ficam acima das abas: **UF Eleição Federal** para Presidente e **UF Eleição Estadual** para as outras quatro abas. Ambos usam as UFs descobertas no EA12, incluindo o DF.
 - Presidente pode permanecer em **Brasil inteiro** enquanto as abas estaduais usam uma UF específica. Selecionar uma UF federal não habilita as abas estaduais; somente a seleção estadual controla esse bloqueio.
 - Cada grupo mantém sua própria UF e seu próprio município durante a sessão da aplicação. Trocar entre Presidente e os demais cargos restaura a seleção do grupo de destino. As quatro abas estaduais compartilham a seleção estadual.
 - Alterar o filtro de um grupo enquanto o outro está aberto não troca a rota nem recarrega a apuração atual. Trocar a UF limpa apenas o município daquele grupo. Limpar a UF federal mantém a seleção estadual e suas abas habilitadas; limpar a UF estadual desativa essas abas e, se uma delas estiver aberta, volta para a seleção federal salva.
-- Os dois cargos de deputado mostram “Em implementação”. Não consultam EA20 e interrompem o acompanhamento do painel anterior. Isso não representa implementação da apuração desses cargos.
-- Rotas sem UF para cargos estaduais redirecionam para Presidente. Rotas das abas pendentes seguem `/deputado-federal/uf/:uf` e `/deputado-estadual/uf/:uf`, com o sufixo opcional `/municipio/:codigo` para preservar o contexto.
+- Deputado Estadual/Distrital mostra “Em implementação”. Não consulta EA20 e interrompe o acompanhamento do painel anterior.
+- Rotas sem UF para cargos estaduais redirecionam para Presidente. A aba pendente segue `/deputado-estadual/uf/:uf`, com o sufixo opcional `/municipio/:codigo` para preservar o contexto.
 - O seletor municipal permanece no painel do cargo implementado e atualiza somente o grupo daquele cargo. A seleção de UF usa os dois seletores acima das abas. URLs diretas inicializam apenas o grupo correspondente; o outro mantém sua seleção durante a sessão.
 - As abas são associadas ao painel pela API `mat-tab-nav-panel`, com navegação por teclado e estado desativado fornecidos pelo Angular Material. A suíte inclui testes de cliques, bloqueio sem UF, seleção compartilhada, URLs diretas e manutenção do município.
 
-### Entregas restantes após Senador
+### Entregas restantes após Deputado Federal
 
-Estimativa atual: 10 entregas funcionais, sujeitas a divisão em etapas menores:
+Estimativa atual: 9 entregas funcionais, sujeitas a divisão em etapas menores:
 
-1. Deputado Federal.
-2. Deputado Estadual/Distrital.
-3. Mapas oficiais do IBGE.
-4. Histórico local e gráficos de evolução.
-5. Comparação entre candidatos.
-6. Busca global.
-7. Modo TV.
-8. PWA.
-9. Deploy automático no GitHub Pages.
-10. Dashboard nacional e agregação regional.
+1. Deputado Estadual/Distrital.
+2. Mapas oficiais do IBGE.
+3. Histórico local e gráficos de evolução.
+4. Comparação entre candidatos.
+5. Busca global.
+6. Modo TV.
+7. PWA.
+8. Deploy automático no GitHub Pages.
+9. Dashboard nacional e agregação regional.
 
 Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

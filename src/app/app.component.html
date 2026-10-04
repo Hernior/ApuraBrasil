@@ -1,13 +1,23 @@
 <header class="header">
   <a class="brand" routerLink="/" aria-label="ApuraBrasil — página inicial"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></a>
   <p>Eleições 2026</p>
-  <nav aria-label="Cargos"><a matButton="text" routerLink="/">Presidente</a><a matButton="text" routerLink="/governador">Governador</a></nav>
 </header>
 <main>
   <p class="eyebrow">Acompanhamento eleitoral</p>
   <h1>Eleições Gerais de 2026</h1>
   <p class="intro">Um espaço para acompanhar a apuração e os resultados oficiais.</p>
-  <router-outlet />
+  <div class="scope-controls">
+    <mat-form-field appearance="outline"><mat-label>UF</mat-label><mat-select [value]="navigation.uf()" [disabled]="navigation.loading()" (selectionChange)="navigation.selectUf($event.value)"><mat-option value="">Brasil (sem UF)</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    @if (!navigation.hasUf()) { <p>Selecione uma UF para habilitar as abas estaduais.</p> }
+    @if (navigation.loading()) { <p role="status">Carregando UFs…</p> }
+    @if (navigation.error(); as error) { <p role="alert">{{ error }}</p><button matButton="outlined" (click)="navigation.retry()">Recarregar UFs</button> }
+  </div>
+  <nav mat-tab-nav-bar [tabPanel]="cargoPanel" aria-label="Cargos">
+    @for (tab of navigation.tabs; track tab.id) {
+      <a mat-tab-link [disabled]="navigation.disabled(tab.id)" [active]="navigation.office() === tab.id" [routerLink]="navigation.disabled(tab.id) ? null : navigation.link(tab.id)">{{ tab.label }}</a>
+    }
+  </nav>
+  <mat-tab-nav-panel #cargoPanel><router-outlet /></mat-tab-nav-panel>
   <mat-card appearance="outlined">
     <mat-card-header><mat-card-title>Eleições disponíveis</mat-card-title></mat-card-header>
     <mat-card-content aria-live="polite" [attr.aria-busy]="elections.loading()">

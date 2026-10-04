@@ -147,7 +147,7 @@ Em 04/10/2026, o EA20 de Alagoas respondeu HTTP 200 e CORS para a origem GitHub 
 ## Presidente por município
 
 - Na visão de UF, escolha um município ou abra `/#/uf/al/municipio/27855` (Maceió). A opção “Toda a UF” retorna ao resultado estadual.
-- Municípios são descobertos pelo [EA12](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea12-arquivo-de-configuracao-de-municipios), no diretório `cm` do EA11. A lista é ordenada por nome e carregada somente ao abrir uma UF; há cache em memória vinculado à URL e à geração do EA11. Exterior não integra o seletor municipal.
+- Municípios são descobertos pelo [EA12](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea12-arquivo-de-configuracao-de-municipios), no diretório `cm` do EA11. A lista é ordenada por nome; o mesmo arquivo também fornece as UFs para o seletor global. Há cache em memória vinculado à URL e à geração do EA11. Exterior não integra o seletor municipal.
 - O código TSE de cinco dígitos é preservado, inclusive zeros à esquerda. O código IBGE é armazenado separadamente. Município fora da UF, ausente ou inválido é recusado antes de consultar acompanhamento ou resultado municipal.
 - Presidente usa o EA20 federal `<uf><município>-c0001-e<eleição com seis dígitos>-u.json`, com validação de eleição, turno, cargo, `tpabr=mu` e código municipal. As fotos permanecem na origem BR.
 - Conforme o [EA15](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea15-arquivo-de-acompanhamento-uf), o acompanhamento municipal pertence à eleição estadual. Ela é descoberta no EA11 pelo mesmo ciclo, data, turno e abrangência (BR ou UF selecionada), sem códigos de eleição fixos. O arquivo da UF deve conter o município em `tpabr=mun`.
@@ -160,7 +160,7 @@ Em 04/10/2026, EA12 federal, EA15 estadual de AL e EA20 federal de Maceió respo
 
 ## Governador por UF e município
 
-- O menu Governador abre `/#/governador`, com seleção de UF sem um resultado nacional agregado. Inclui o Distrito Federal. Rotas diretas: `/#/governador/uf/al` e `/#/governador/uf/al/municipio/27855` (Maceió).
+- A aba Governador abre a UF e o município selecionados no contexto global. Inclui o Distrito Federal. Rotas diretas: `/#/governador/uf/al` e `/#/governador/uf/al/municipio/27855` (Maceió). A antiga rota `/#/governador`, sem UF, redireciona para Presidente.
 - A eleição estadual e os turnos disponíveis vêm do EA11. O seletor oferece somente eleições que publicam o cargo Governador na abrangência BR ou na UF aberta. UFs e municípios são descobertos pelo EA12 da eleição estadual, com códigos TSE e IBGE separados e preservação dos zeros à esquerda.
 - Usa o cargo `0003` conforme o [layout EA20](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea20-arquivo-de-resultado-unificado), no diretório `u` da eleição estadual. Resultados são validados por eleição, turno, cargo e abrangência exata. Não usa IDs fixos nem consulta as 27 UFs simultaneamente.
 - Fotos de Governador usam o diretório `ft` da UF aberta. O mesmo painel de resultados exibe votação, percentuais, andamento, seções, votos válidos, brancos e nulos, comparecimento, abstenção e situação oficial do candidato. Não infere eleição ou segundo turno a partir da posição no ranking.
@@ -169,6 +169,16 @@ Em 04/10/2026, EA12 federal, EA15 estadual de AL e EA20 federal de Maceió respo
 - A navegação entre Presidente e Governador cancela a consulta anterior e remove resultados de outro cargo, eleição ou abrangência. O rodapé identifica o cargo dos últimos dados recebidos. Não altera schema, grava em banco nem publica o site.
 
 Em 04/10/2026, uma verificação pontual em ChromeHeadless abriu Governador de Alagoas e de Maceió usando EA11, EA12, EA14, EA15 e EA20 oficiais. As duas rotas renderizaram candidatos do cargo correto. EA20 de AL e EA14 estadual também responderam HTTP 200 com CORS para a origem GitHub Pages. A suíte permanente possui 82 testes com fixtures; a verificação oficial separada não integra a suíte. Isso não representa verificação de todos os municípios ou publicação no GitHub Pages.
+
+## Abas de cargos e seleção compartilhada de UF
+
+- Navegação em abas Angular Material: Presidente, Governador, Senador, Dep. Federal e Dep. Estadual. O seletor global de UF fica acima das abas e usa as UFs descobertas no EA12, incluindo o DF.
+- Sem UF selecionada, as quatro abas estaduais ficam desativadas, sem links navegáveis. Presidente permanece habilitada na abrangência Brasil.
+- Selecionar uma UF habilita as abas estaduais. Trocar de cargo mantém a UF e o código municipal selecionados. Trocar de UF limpa o município; escolher Brasil (sem UF) retorna para Presidente nacional e desativa novamente as abas estaduais.
+- Senador e os dois cargos de deputado mostram “Em implementação”. Não consultam EA20 e interrompem o acompanhamento do painel anterior. Isso não representa implementação da apuração desses cargos.
+- Rotas sem UF para cargos estaduais redirecionam para Presidente. Rotas das abas pendentes seguem `/senador/uf/:uf`, `/deputado-federal/uf/:uf` e `/deputado-estadual/uf/:uf`, com o sufixo opcional `/municipio/:codigo` para preservar o contexto.
+- O seletor municipal permanece no painel do cargo implementado. A seleção de UF foi removida desse painel para usar um único seletor global.
+- As abas são associadas ao painel pela API `mat-tab-nav-panel`, com navegação por teclado e estado desativado fornecidos pelo Angular Material. A suíte inclui testes de cliques, bloqueio sem UF, seleção compartilhada, URLs diretas e manutenção do município.
 
 ### Entregas restantes após Governador
 

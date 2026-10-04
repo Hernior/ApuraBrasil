@@ -42,13 +42,13 @@ describe('Governor routes', () => {
     expect(president.president.result()?.electionId).toBe('42');
     expect(governor.president.result()?.scopeCode).toBe('br');
   });
-  it('offers UF selection without requesting a national Governor result', async () => {
+  it('redirects Governor without a UF to President and never requests a national Governor result', async () => {
     const harness = await RouterTestingHarness.create();
     const component = await harness.navigateByUrl('/governador', PresidentComponent);
     await harness.fixture.whenStable(); harness.detectChanges();
-    expect(component.availableStates()).toEqual(['al', 'df']);
-    expect(loadGovernor).not.toHaveBeenCalled(); expect(loadTracking).not.toHaveBeenCalled();
-    expect(harness.routeNativeElement?.textContent).toContain('Escolha uma UF');
+    expect(component.governor()).toBeFalse();
+    expect(loadGovernor).not.toHaveBeenCalled();
+    expect(harness.routeNativeElement?.textContent).toContain('Presidente da República');
   });
   it('opens a direct UF, switches to municipality and returns to President without mixing results', async () => {
     const harness = await RouterTestingHarness.create();

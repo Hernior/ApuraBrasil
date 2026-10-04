@@ -2,7 +2,6 @@
   <div class="toolbar">
     <div><p class="eyebrow">{{ scope() === 'br' ? (governor() ? 'Selecione uma UF' : 'Brasil · incluindo o exterior') : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">{{ heading() }}</h2></div>
     @if (selected(); as election) {
-      <label class="election-select"><span>Abrangência</span><select [value]="scope()" (change)="selectScope($event)"><option value="br">{{ governor() ? 'Selecione uma UF' : 'Brasil' }}</option>@for (uf of availableStates(); track uf) { <option [value]="uf">{{ uf.toUpperCase() }}</option> }</select></label>
       @if (scope() !== 'br') {
         <label class="election-select"><span>Município</span><select [value]="municipalityCode()" [disabled]="municipalitiesLoading() || !municipalities().length" (change)="selectMunicipality($event)"><option value="">Toda a UF</option>@for (city of municipalities(); track city.code) { <option [value]="city.code">{{ city.name }}</option> }</select></label>
       }

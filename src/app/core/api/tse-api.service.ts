@@ -1,4 +1,6 @@
 import { parseEA14 } from './ea14-parser';
+import { parseEA15 } from './ea15-parser';
+import { Municipality, parseEA12 } from './municipality-parser';
 import { TseRequestError, retryAfterMilliseconds } from './tse-request-error';
 import { Election, ElectionConfiguration } from '../models/election.model';
 import { parsePresidentEA20 } from './ea20-parser';
@@ -12,6 +14,25 @@ import { TseUrlBuilderService } from './tse-url-builder.service';
 export class TseApiService implements ElectionDataProvider {
   private readonly urls = inject(TseUrlBuilderService);
   private readonly parser = inject(TseParserService);
+  private readonly municipalities = new Map<string, Municipality[]>();
+
+  async loadMunicipalities(config: ElectionConfiguration, election: Election, signal: AbortSignal): Promise<Municipality[]> {
+    const url = this.urls.municipalitiesUrl(config, election);
+    const key = `${config.generationId}:${url}`;
+    const cached = this.municipalities.get(key);
+    if (cached) return cached;
+    const response = await fetch(url, { signal, credentials: 'omit', cache: 'no-cache' });
+    if (!response.ok) throw new TseRequestError(response.status, `Municípios indisponíveis (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
+    const result = parseEA12(await response.json() as unknown);
+    if (environment.production && result.phase !== 'o') throw new Error('Municípios de simulado recusados em produção.');
+    if (!signal.aborted) { this.municipalities.clear(); this.municipalities.set(key, result.municipalities); }
+    return result.municipalities;
+  }
+
+  private async validateMunicipality(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string): Promise<void> {
+    const [uf, code] = scope.split('/');
+    if (!(await this.loadMunicipalities(config, election, signal)).some(m => m.uf === uf && m.code === code)) throw new Error('Município não disponível nesta UF no EA12.');
+  }
 
   async loadConfiguration(signal: AbortSignal) {
     const response = await fetch(this.urls.configurationUrl(), { signal, credentials: 'omit', cache: 'no-cache' });
@@ -26,6 +47,7 @@ export class TseApiService implements ElectionDataProvider {
   }
 
   async loadPresident(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
+    if (scope.includes('/')) await this.validateMunicipality(config, election, signal, scope);
     const response = await fetch(this.urls.presidentUrl(config, election, scope), { signal, credentials: 'omit', cache: 'no-cache' });
     if (response.status === 404) throw new TseRequestError(404, 'Resultado de Presidente ainda não disponível no TSE (404).');
     if (response.status === 429) throw new TseRequestError(429, 'Limite de consultas atingido (429). Aguarde antes de atualizar.', retryAfterMilliseconds(response.headers.get('Retry-After')));
@@ -39,9 +61,23 @@ export class TseApiService implements ElectionDataProvider {
   }
 
   async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
-    const response = await fetch(this.urls.trackingUrl(config, election), { signal, credentials: 'omit', cache: 'no-cache' });
+    const [uf, municipality] = scope.split('/');
+    const stateElection = municipality ? config.elections.filter(e => e.kind === 'state' && e.cycle === election.cycle && e.date === election.date && e.round === election.round && e.scopes.some(s => s.code === uf || s.code === 'br')) : [];
+    if (municipality) {
+      await this.validateMunicipality(config, election, signal, scope);
+      if (!stateElection.length) return {
+        electionId: election.id, round: election.round, phase: config.phase, generationId: config.generationId,
+        availableStates: [], signature: `manual:${scope}`,
+        national: { date: null, time: null, processedSections: null, progress: 'n' as const },
+        manualNotice: 'Acompanhamento municipal indisponível para este turno. Use Atualizar Presidente para consultar os resultados.'
+      };
+      if (stateElection.length !== 1) throw new Error('Mais de uma eleição estadual corresponde ao acompanhamento municipal.');
+    }
+    const trackingElection = municipality ? stateElection[0]! : election;
+    const response = await fetch(this.urls.trackingUrl(config, trackingElection, municipality ? uf : 'br'), { signal, credentials: 'omit', cache: 'no-cache' });
     if (!response.ok) throw new TseRequestError(response.status, `Acompanhamento do TSE indisponível (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
-    const result = parseEA14(await response.json() as unknown, election.id, election.round, scope);
+    const input: unknown = await response.json();
+    const result = municipality ? parseEA15(input, trackingElection.id, election.round, uf, municipality) : parseEA14(input, election.id, election.round, scope);
     if (environment.production && result.phase !== 'o') throw new Error('Acompanhamento de simulado recusado em produção.');
     return result;
   }

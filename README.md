@@ -127,7 +127,7 @@ Baseada no [EA14 de 10/06/2026](https://www.tse.jus.br/eleicoes/eleicoes-2026-co
 
 EA14 nacional foi verificado com HTTP 200 e CORS para a origem GitHub Pages em 04/10/2026. Uma verificação separada em ChromeHeadless executou a carga inicial e um segundo ciclo agendado após 15s usando EA11, EA14 e EA20 oficiais. Testes unitários usam fixtures e relógio simulado, sem consultar o TSE nem provocar erros 429 reais.
 
-O acompanhamento de Presidente inclui Brasil e a UF selecionada. EA15, consultas por UF/município, fila geral de concorrência, IndexedDB e snapshots permanecem para próximas etapas. Não altera schema nem grava em banco de dados.
+O acompanhamento de Presidente inclui Brasil, a UF e o município selecionado. Fila geral de concorrência, IndexedDB e snapshots permanecem para próximas etapas. Não altera schema nem grava em banco de dados.
 
 ## Presidente por UF
 
@@ -144,22 +144,35 @@ O acompanhamento de Presidente inclui Brasil e a UF selecionada. EA15, consultas
 
 Em 04/10/2026, o EA20 de Alagoas respondeu HTTP 200 e CORS para a origem GitHub Pages. Um teste separado em ChromeHeadless abriu diretamente `/uf/al`, renderizou os dados oficiais da UF e confirmou 27 UFs descobertas pelo EA14. Isso não representa verificação de todos os endpoints estaduais nem publicação no GitHub Pages.
 
-### Entregas restantes após Presidente por UF
+## Presidente por município
 
-Estimativa atual: 13 entregas funcionais, sujeitas a divisão em etapas menores:
+- Na visão de UF, escolha um município ou abra `/#/uf/al/municipio/27855` (Maceió). A opção “Toda a UF” retorna ao resultado estadual.
+- Municípios são descobertos pelo [EA12](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea12-arquivo-de-configuracao-de-municipios), no diretório `cm` do EA11. A lista é ordenada por nome e carregada somente ao abrir uma UF; há cache em memória vinculado à URL e à geração do EA11. Exterior não integra o seletor municipal.
+- O código TSE de cinco dígitos é preservado, inclusive zeros à esquerda. O código IBGE é armazenado separadamente. Município fora da UF, ausente ou inválido é recusado antes de consultar acompanhamento ou resultado municipal.
+- Presidente usa o EA20 federal `<uf><município>-c0001-e<eleição com seis dígitos>-u.json`, com validação de eleição, turno, cargo, `tpabr=mu` e código municipal. As fotos permanecem na origem BR.
+- Conforme o [EA15](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea15-arquivo-de-acompanhamento-uf), o acompanhamento municipal pertence à eleição estadual. Ela é descoberta no EA11 pelo mesmo ciclo, data, turno e abrangência (BR ou UF selecionada), sem códigos de eleição fixos. O arquivo da UF deve conter o município em `tpabr=mun`.
+- Cada ciclo municipal consulta somente o EA15 da UF aberta; apenas mudanças no registro municipal selecionado provocam nova consulta ao EA20. Mudanças em outros municípios e apenas no identificador de geração não recarregam os votos. A atualização manual força uma consulta.
+- Datas e finalização da eleição estadual não são usadas para exigir sincronização do resultado federal. O marcador de seções processadas mantém a consulta pendente quando o EA20 ainda está atrasado. O EA15 acompanha seções e eleitorado; alterações exclusivamente nos votos que não alterem esse marcador podem exigir atualização manual.
+- Sem eleição estadual correspondente, o resultado federal municipal continua disponível em modo Manual, com aviso no painel. Não presume um EA15 de outra eleição ou turno.
+- A troca de rota cancela requisições e ignora respostas antigas. Falhas no EA12 são exibidas com possibilidade de nova tentativa; HTTP 429 também respeita pausa mínima de 10 minutos e Retry-After, inclusive ao atualizar manualmente ou trocar de rota. Offline não inicia consulta de municípios; ao reconectar, use Atualizar Presidente para tentar carregar a lista.
 
-1. Resultados municipais de Presidente, com EA12 e acompanhamento EA15.
-2. Governador.
-3. Senador, com duas vagas.
-4. Deputado Federal.
-5. Deputado Estadual/Distrital.
-6. Mapas oficiais do IBGE.
-7. Histórico local e gráficos de evolução.
-8. Comparação entre candidatos.
-9. Busca global.
-10. Modo TV.
-11. PWA.
-12. Deploy automático no GitHub Pages.
-13. Dashboard nacional e agregação regional.
+Em 04/10/2026, EA12 federal, EA15 estadual de AL e EA20 federal de Maceió responderam HTTP 200 com CORS para a origem GitHub Pages. Uma verificação separada em ChromeHeadless abriu a rota municipal diretamente e renderizou os dados oficiais. A suíte permanente usa fixtures, sem consultar o TSE. Isso não verifica todos os municípios nem publicação no GitHub Pages.
+
+### Entregas restantes após Presidente por município
+
+Estimativa atual: 12 entregas funcionais, sujeitas a divisão em etapas menores:
+
+1. Governador.
+2. Senador, com duas vagas.
+3. Deputado Federal.
+4. Deputado Estadual/Distrital.
+5. Mapas oficiais do IBGE.
+6. Histórico local e gráficos de evolução.
+7. Comparação entre candidatos.
+8. Busca global.
+9. Modo TV.
+10. PWA.
+11. Deploy automático no GitHub Pages.
+12. Dashboard nacional e agregação regional.
 
 Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

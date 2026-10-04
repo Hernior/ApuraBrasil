@@ -1,4 +1,5 @@
 export interface ElectionTracking {
+  manualNotice?: string;
   electionId: string;
   availableStates: string[];
   round: 1 | 2;

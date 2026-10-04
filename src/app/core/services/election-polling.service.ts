@@ -84,6 +84,14 @@ export class ElectionPollingService {
 
   async refresh(): Promise<void> { await this.check(true); }
 
+  canRequest(): boolean { return Date.now() >= this.blockedUntil; }
+  rateLimited(error: TseRequestError): void {
+    this.blockedUntil = Math.max(this.blockedUntil, Date.now() + Math.max(600000, error.retryAfterMs));
+    this.message.set('O TSE limitou as consultas. Atualização pausada por pelo menos 10 minutos.');
+    this.cancelCheck();
+    this.schedule();
+  }
+
   private clearTimer(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
@@ -132,7 +140,7 @@ export class ElectionPollingService {
       const tracking = await this.provider.loadTracking(context.config, context.election, controller.signal, context.scope);
       clearTimeout(timeout);
       if (this.controller !== controller) return;
-      this.availableStates.set(tracking.availableStates);
+      if (!context.scope.includes('/')) this.availableStates.set(tracking.availableStates);
       this.lastCheckedAt.set(Date.now());
       const previous = this.president.result();
       const changed = this.signature !== tracking.signature;
@@ -151,6 +159,10 @@ export class ElectionPollingService {
         if (result.generationId !== previous?.generationId) this.lastResultAt.set(Date.now());
       } else {
         this.message.set(null);
+      }
+      if (tracking.manualNotice) {
+        this.interval.set(0);
+        this.message.set(tracking.manualNotice);
       }
       this.failures = 0;
     } catch (error: unknown) {

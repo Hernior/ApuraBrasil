@@ -1,8 +1,11 @@
 <section aria-labelledby="president-title">
   <div class="toolbar">
-    <div><p class="eyebrow">{{ scope() === 'br' ? 'Brasil · incluindo o exterior' : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">Presidente da República</h2></div>
+    <div><p class="eyebrow">{{ scope() === 'br' ? 'Brasil · incluindo o exterior' : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">Presidente da República</h2></div>
     @if (selected(); as election) {
       <label class="election-select"><span>Abrangência</span><select [value]="scope()" (change)="selectScope($event)"><option value="br">Brasil</option>@for (uf of polling.availableStates(); track uf) { <option [value]="uf">{{ uf.toUpperCase() }}</option> }</select></label>
+      @if (scope() !== 'br') {
+        <label class="election-select"><span>Município</span><select [value]="municipalityCode()" [disabled]="municipalitiesLoading() || !municipalities().length" (change)="selectMunicipality($event)"><option value="">Toda a UF</option>@for (city of municipalities(); track city.code) { <option [value]="city.code">{{ city.name }}</option> }</select></label>
+      }
       <label class="election-select">
         <span>Eleição</span>
         <select [value]="election.id" (change)="selectElection($event)">
@@ -16,10 +19,12 @@
     }
   </div>
   <div aria-live="polite" [attr.aria-busy]="polling.checking()">
+    @if (municipalitiesLoading()) { <p>Consultando municípios no TSE…</p> }
+    @if (municipalitiesError(); as error) { <p role="alert">{{ error }}</p> }
     @if (polling.live()) { <p class="live">AO VIVO</p> }
-    @if (polling.suspended()) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
+    @if (polling.suspended() && !municipalitiesLoading() && !municipalitiesError()) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
     @if (polling.message(); as message) { <p role="status">{{ message }}</p> }
-    @if (polling.checking()) { <p>Consultando a apuração nacional no TSE…</p> }
+    @if (polling.checking()) { <p>Consultando a apuração no TSE…</p> }
     @if (president.error(); as error) {
       <p role="alert">{{ error }}</p>
       @if (president.result()) { <p>Exibindo os últimos dados recebidos. A atualização falhou.</p> }

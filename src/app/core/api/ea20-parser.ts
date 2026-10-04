@@ -42,7 +42,7 @@ export function parsePresidentEA20(input: unknown, electionId: string, round: 1 
   const progress = string(root['and']);
   const dv = string(root['dv']);
   if (id(root['ele']) !== id(electionId) || Number(root['t']) !== round ||
-      root['tpabr'] !== (scope === 'br' ? 'br' : 'uf') || String(root['cdabr']).toLowerCase() !== scope) {
+      root['tpabr'] !== (scope.includes('/') ? 'mu' : scope === 'br' ? 'br' : 'uf') || String(root['cdabr']).toLowerCase() !== (scope.split('/')[1] ?? scope)) {
     throw new Error('EA20 não corresponde à eleição ou à abrangência solicitada.');
   }
   if ((phase !== 'o' && phase !== 's') || !['n', 'p', 'f'].includes(progress) || !['s', 'n'].includes(dv)) {

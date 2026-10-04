@@ -23,14 +23,14 @@ export class TseUrlBuilderService {
   }
 
   presidentUrl(config: ElectionConfiguration, election: Election, scope = 'br'): string {
-    if (!/^(br|[a-z]{2})$/.test(scope) || scope === 'zz') throw new Error('UF inválida.');
+    if (!/^(br|[a-z]{2})(?:\/[0-9]{5})?$/.test(scope) || scope.startsWith('zz') || scope.startsWith('br/')) throw new Error('UF ou município inválido.');
     if (election.kind !== 'federal' || !election.scopes.some(s => s.code === 'br' && s.offices.some(o => Number(o.code) === 1))) {
       throw new Error('Eleição federal de Presidente não disponível.');
     }
     if (!/^\d{1,6}$/.test(election.id)) throw new Error('Código de eleição inválido.');
-    const directory = this.directory(config, election, 'u', scope);
+    const directory = this.directory(config, election, 'u', scope.split('/')[0]);
     if (!directory) throw new Error('Diretório de resultados EA20 ausente no EA11.');
-    return `${directory}/${scope}-c0001-e${election.id.padStart(6, '0')}-u.json`;
+    return `${directory}/${scope.replace('/', '')}-c0001-e${election.id.padStart(6, '0')}-u.json`;
   }
 
   candidatePhotoUrl(config: ElectionConfiguration, election: Election, candidateId: string): string | null {
@@ -39,10 +39,18 @@ export class TseUrlBuilderService {
     return directory ? `${directory}/${candidateId}.jpeg` : null;
   }
 
-  trackingUrl(config: ElectionConfiguration, election: Election): string {
+  municipalitiesUrl(config: ElectionConfiguration, election: Election): string {
     if (!/^\d{1,6}$/.test(election.id)) throw new Error('Código de eleição inválido.');
-    const directory = this.directory(config, election, 'ab');
+    const directory = this.directory(config, election, 'cm');
+    if (!directory) throw new Error('Diretório EA12 ausente no EA11.');
+    return `${directory}/mun-e${election.id.padStart(6, '0')}-cm.json`;
+  }
+
+  trackingUrl(config: ElectionConfiguration, election: Election, uf = 'br'): string {
+    if (!/^(br|[a-z]{2})$/.test(uf) || uf === 'zz') throw new Error('UF inválida.');
+    if (!/^\d{1,6}$/.test(election.id)) throw new Error('Código de eleição inválido.');
+    const directory = this.directory(config, election, 'ab', uf);
     if (!directory) throw new Error('Diretório EA14 ausente no EA11.');
-    return `${directory}/br-e${election.id.padStart(6, '0')}-ab.json`;
+    return `${directory}/${uf}-e${election.id.padStart(6, '0')}-ab.json`;
   }
 }

@@ -54,6 +54,8 @@ describe('Election tabs with independent federal and state filters', () => {
     expect(element.textContent).toContain('Os votos abaixo são do município');
     expect(element.querySelectorAll('mat-chip.calculated-status').length).toBe(3);
     expect(element.querySelector('mat-chip.calculated-status')?.textContent).toContain('Provisoriamente na faixa de eleição');
+    expect(element.querySelectorAll('.candidates mat-card.provisional').length).toBe(3);
+    expect(element.querySelector('.candidates mat-card.elected')).toBeNull();
     expect(element.querySelector('mat-chip.official-status')?.textContent).toContain('TSE: Ainda não informada');
     expect(element.querySelector('.candidates .highlight')).toBeNull();
     tab(element, 'Presidente').click(); await settle(fixture);
@@ -72,6 +74,8 @@ describe('Election tabs with independent federal and state filters', () => {
     const fixture = await setup('/deputado-federal/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('mat-chip.calculated-status').length).toBe(3);
     expect(element.querySelector('mat-chip.calculated-status')?.textContent).toContain('Eleito pelo cálculo');
+    expect(element.querySelectorAll('.candidates mat-card.elected').length).toBe(3);
+    expect(element.querySelector('.candidates mat-card.provisional')).toBeNull();
     expect(element.textContent).toContain('TSE: Eleito por QP');
     expect(element.textContent).not.toContain('Provisoriamente na faixa');
   });

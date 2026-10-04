@@ -54,6 +54,11 @@ export class PresidentComponent implements OnDestroy {
   officialStatus(id: string, localStatus: string | null): string {
     return (this.federalDeputy() ? this.statewideCandidates().get(id)?.status : localStatus) || 'Ainda não informada pelo TSE';
   }
+  candidateAppearance(id: string, status: string | null): 'elected' | 'provisional' | '' {
+    const calculated = this.federalDeputy() && this.calculatedWinners().has(id);
+    if (/^eleit[oa](?:$|\s+por\s)/i.test(this.officialStatus(id, status).trim()) || (calculated && this.allocation()?.final)) return 'elected';
+    return calculated ? 'provisional' : '';
+  }
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());
   readonly available = computed(() => this.elections.elections().filter(e =>

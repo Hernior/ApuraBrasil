@@ -76,7 +76,7 @@
       }
       <div class="candidates">
         @for (candidate of result.candidates; track candidate.id; let i = $index) {
-          <mat-card appearance="outlined" [class.highlight]="!senator() && !federalDeputy() && result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
+          <mat-card appearance="outlined" [class.elected]="candidateAppearance(candidate.id, candidate.status) === 'elected'" [class.provisional]="candidateAppearance(candidate.id, candidate.status) === 'provisional'" [class.highlight]="!senator() && !federalDeputy() && result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
             <mat-card-content>
               <div class="candidate-header">
                 @if (candidate.photoUrl && !failedPhotos().has(candidate.id)) {

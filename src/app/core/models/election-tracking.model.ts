@@ -1,5 +1,6 @@
 export interface ElectionTracking {
   electionId: string;
+  availableStates: string[];
   round: 1 | 2;
   phase: 'o' | 's';
   generationId: string;

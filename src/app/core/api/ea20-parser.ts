@@ -36,14 +36,14 @@ export function rankCandidates(candidates: Candidate[]): Candidate[] {
     (b.votes ?? -1) - (a.votes ?? -1) || a.sequence - b.sequence || a.id.localeCompare(b.id));
 }
 
-export function parsePresidentEA20(input: unknown, electionId: string, round: 1 | 2): ElectionResult {
+export function parsePresidentEA20(input: unknown, electionId: string, round: 1 | 2, scope = 'br'): ElectionResult {
   const root = object(input);
   const phase = string(root['f']);
   const progress = string(root['and']);
   const dv = string(root['dv']);
   if (id(root['ele']) !== id(electionId) || Number(root['t']) !== round ||
-      root['tpabr'] !== 'br' || String(root['cdabr']).toLowerCase() !== 'br') {
-    throw new Error('EA20 não corresponde à eleição ou à abrangência nacional solicitada.');
+      root['tpabr'] !== (scope === 'br' ? 'br' : 'uf') || String(root['cdabr']).toLowerCase() !== scope) {
+    throw new Error('EA20 não corresponde à eleição ou à abrangência solicitada.');
   }
   if ((phase !== 'o' && phase !== 's') || !['n', 'p', 'f'].includes(progress) || !['s', 'n'].includes(dv)) {
     throw new Error('EA20 inválido: fase, andamento ou divulgação.');
@@ -83,7 +83,7 @@ export function parsePresidentEA20(input: unknown, electionId: string, round: 1 
   const electors = object(root['e']);
   const votes = object(root['v']);
   return {
-    electionId: id(root['ele']), round, phase, generationId: id(root['idg']),
+    electionId: id(root['ele']), scopeCode: scope, round, phase, generationId: id(root['idg']),
     generatedDate: string(root['dg']), generatedTime: string(root['hg']),
     totalizationDate: optionalText(root['dt']), totalizationTime: optionalText(root['ht']),
     disclosureAllowed: dv === 's', progress: progress as 'n' | 'p' | 'f',

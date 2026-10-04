@@ -1,7 +1,8 @@
 <section aria-labelledby="president-title">
   <div class="toolbar">
-    <div><p class="eyebrow">Brasil · incluindo o exterior</p><h2 id="president-title">Presidente da República</h2></div>
+    <div><p class="eyebrow">{{ scope() === 'br' ? 'Brasil · incluindo o exterior' : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">Presidente da República</h2></div>
     @if (selected(); as election) {
+      <label class="election-select"><span>Abrangência</span><select [value]="scope()" (change)="selectScope($event)"><option value="br">Brasil</option>@for (uf of polling.availableStates(); track uf) { <option [value]="uf">{{ uf.toUpperCase() }}</option> }</select></label>
       <label class="election-select">
         <span>Eleição</span>
         <select [value]="election.id" (change)="selectElection($event)">

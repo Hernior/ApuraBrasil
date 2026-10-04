@@ -2,6 +2,7 @@ import { Candidate } from './candidate.model';
 
 export interface ElectionResult {
   electionId: string;
+  scopeCode: string;
   round: 1 | 2;
   phase: 'o' | 's';
   generationId: string;

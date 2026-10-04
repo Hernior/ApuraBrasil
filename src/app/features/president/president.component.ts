@@ -1,3 +1,6 @@
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
+import { of } from 'rxjs';
 import { ElectionPollingService } from '../../core/services/election-polling.service';
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
@@ -14,6 +17,10 @@ import { PresidentStore } from '../../core/state/president.store';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PresidentComponent implements OnDestroy {
+  private readonly route = inject(ActivatedRoute, { optional: true });
+  private readonly router = inject(Router, { optional: true });
+  private readonly params = toSignal(this.route?.paramMap ?? of(convertToParamMap({})));
+  readonly scope = computed(() => this.params()?.get('uf')?.toLowerCase() ?? 'br');
   readonly elections = inject(ElectionStore);
   readonly president = inject(PresidentStore);
   readonly polling = inject(ElectionPollingService);
@@ -27,12 +34,17 @@ export class PresidentComponent implements OnDestroy {
     effect(() => {
       const config = this.elections.configuration();
       const election = this.selected();
+      const scope = this.scope();
       if (config && election) {
-        untracked(() => { this.polling.activate(config, election); });
+        untracked(() => { this.polling.activate(config, election, scope); });
       } else if (config) {
         untracked(() => { this.polling.stop(); this.president.result.set(null); });
       }
     });
+  }
+  selectScope(event: Event): void {
+    const scope = (event.target as HTMLSelectElement).value;
+    void this.router?.navigate(scope === 'br' ? ['/'] : ['/uf', scope]);
   }
   selectElection(event: Event): void {
     this.selectedId.set((event.target as HTMLSelectElement).value);

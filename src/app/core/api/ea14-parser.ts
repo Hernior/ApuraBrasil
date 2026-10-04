@@ -20,7 +20,7 @@ function canonical(value: unknown): unknown {
     Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, canonical(entry)]));
   return value;
 }
-export function parseEA14(input: unknown, electionId: string, round: 1 | 2): ElectionTracking {
+export function parseEA14(input: unknown, electionId: string, round: 1 | 2, scopeCode = 'br'): ElectionTracking {
   const root = object(input);
   const phase = root['f'];
   if (code(root['ele']) !== code(electionId) || Number(root['t']) !== round) throw new Error('EA14 de eleição ou turno diferente.');
@@ -36,14 +36,15 @@ export function parseEA14(input: unknown, electionId: string, round: 1 | 2): Ele
     return scope;
   }).sort((a, b) => String(a['cdabr']).localeCompare(String(b['cdabr'])));
   if (new Set(scopes.map(s => s['cdabr'])).size !== scopes.length) throw new Error('EA14 inválido: abrangências duplicadas.');
-  const national = scopes.find(s => s['tpabr'] === 'br' && String(s['cdabr']).toLowerCase() === 'br');
-  if (!national) throw new Error('EA14 sem abrangência Brasil.');
+  const national = scopes.find(s => s['tpabr'] === (scopeCode === 'br' ? 'br' : 'uf') && String(s['cdabr']).toLowerCase() === scopeCode);
+  if (!national) throw new Error(scopeCode === 'br' ? 'EA14 sem abrangência Brasil.' : 'UF não disponível no acompanhamento do TSE.');
   const sections = object(national['s'])['st'];
   const processed = sections === undefined || sections === '' ? null : Number(code(sections));
   if (processed !== null && !Number.isSafeInteger(processed)) throw new Error('EA14 inválido: seções.');
   return {
     electionId: code(root['ele']), round, phase, generationId: code(root['idg']),
-    signature: JSON.stringify(canonical(scopes)),
+    availableStates: scopes.filter(s => s['tpabr'] === 'uf' && s['cdabr'] !== 'zz').map(s => String(s['cdabr']).toLowerCase()),
+    signature: JSON.stringify(canonical(scopeCode === 'br' ? scopes : [national])),
     national: { date: optionalText(national['dt']), time: optionalText(national['ht']),
       processedSections: processed, progress: national['and'] as 'n' | 'p' | 'f' }
   };

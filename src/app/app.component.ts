@@ -1,4 +1,4 @@
-import { PresidentComponent } from './features/president/president.component';
+import { RouterOutlet, RouterLink } from '@angular/router';
 import { PresidentStore } from './core/state/president.store';
 import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
@@ -8,7 +8,7 @@ import { ElectionStore } from './core/state/election.store';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, PresidentComponent],
+  imports: [MatCardModule, MatButtonModule, RouterOutlet, RouterLink],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

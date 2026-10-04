@@ -4,9 +4,9 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 ## Estado desta entrega
 
-Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
+Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional e por UF consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Resultados por UF e município, demais cargos, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
+Resultados municipais, demais cargos, histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
 
 ## Requisitos e execução
 
@@ -127,4 +127,39 @@ Baseada no [EA14 de 10/06/2026](https://www.tse.jus.br/eleicoes/eleicoes-2026-co
 
 EA14 nacional foi verificado com HTTP 200 e CORS para a origem GitHub Pages em 04/10/2026. Uma verificação separada em ChromeHeadless executou a carga inicial e um segundo ciclo agendado após 15s usando EA11, EA14 e EA20 oficiais. Testes unitários usam fixtures e relógio simulado, sem consultar o TSE nem provocar erros 429 reais.
 
-Esta entrega acompanha apenas Presidente nacional. EA15, consultas por UF/município, fila geral de concorrência, IndexedDB e snapshots permanecem para próximas etapas. Não altera schema nem grava em banco de dados.
+O acompanhamento de Presidente inclui Brasil e a UF selecionada. EA15, consultas por UF/município, fila geral de concorrência, IndexedDB e snapshots permanecem para próximas etapas. Não altera schema nem grava em banco de dados.
+
+## Presidente por UF
+
+- Acesse `/#/uf/al`, `/#/uf/pe` etc. ou use o seletor de abrangência no painel de Presidente. Brasil fica em `/#/`; `/#/presidente` redireciona para a mesma visão.
+- As UFs disponíveis vêm das abrangências `tpabr=uf` do EA14 da eleição selecionada. A abrangência Exterior (`zz`) não aparece como UF.
+- O resultado usa o diretório EA11 com o token `<uf>` da seleção e o arquivo `<uf>-c0001-e<eleição com seis dígitos>-u.json`.
+- O parser valida a eleição, turno, cargo e a UF exata antes de apresentar os dados; não substitui dados estaduais por dados nacionais.
+- O mesmo painel exibe candidatos, votos, percentuais, seções, comparecimento e abstenção na abrangência escolhida, mantendo as regras de divulgação e situação oficial.
+- O EA14 continua sendo consultado, mas para UF a assinatura e o marcador consideram somente a abrangência aberta. Mudanças em outras UFs não causam uma nova consulta ao EA20 da UF atual.
+- A navegação cancela requisições anteriores e remove resultados de outra abrangência. Não carrega as 27 UFs simultaneamente.
+- UFs desconhecidas são recusadas a partir do EA14, antes de consultar uma URL EA20 presumida. Não há API intermediária, alterações de schema ou gravações em banco.
+- As fotos de Presidente continuam usando a origem BR publicada no EA11, pois se referem aos mesmos candidatos nacionais.
+- A rota é carregada sob demanda e usa hash, compatível com o baseHref `/ApuraBrasil/`.
+
+Em 04/10/2026, o EA20 de Alagoas respondeu HTTP 200 e CORS para a origem GitHub Pages. Um teste separado em ChromeHeadless abriu diretamente `/uf/al`, renderizou os dados oficiais da UF e confirmou 27 UFs descobertas pelo EA14. Isso não representa verificação de todos os endpoints estaduais nem publicação no GitHub Pages.
+
+### Entregas restantes após Presidente por UF
+
+Estimativa atual: 13 entregas funcionais, sujeitas a divisão em etapas menores:
+
+1. Resultados municipais de Presidente, com EA12 e acompanhamento EA15.
+2. Governador.
+3. Senador, com duas vagas.
+4. Deputado Federal.
+5. Deputado Estadual/Distrital.
+6. Mapas oficiais do IBGE.
+7. Histórico local e gráficos de evolução.
+8. Comparação entre candidatos.
+9. Busca global.
+10. Modo TV.
+11. PWA.
+12. Deploy automático no GitHub Pages.
+13. Dashboard nacional e agregação regional.
+
+Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

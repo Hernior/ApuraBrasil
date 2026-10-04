@@ -25,12 +25,12 @@ export class TseApiService implements ElectionDataProvider {
     return configuration;
   }
 
-  async loadPresident(config: ElectionConfiguration, election: Election, signal: AbortSignal) {
-    const response = await fetch(this.urls.presidentUrl(config, election), { signal, credentials: 'omit', cache: 'no-cache' });
+  async loadPresident(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
+    const response = await fetch(this.urls.presidentUrl(config, election, scope), { signal, credentials: 'omit', cache: 'no-cache' });
     if (response.status === 404) throw new TseRequestError(404, 'Resultado de Presidente ainda não disponível no TSE (404).');
     if (response.status === 429) throw new TseRequestError(429, 'Limite de consultas atingido (429). Aguarde antes de atualizar.', retryAfterMilliseconds(response.headers.get('Retry-After')));
     if (!response.ok) throw new TseRequestError(response.status, `O TSE respondeu com HTTP ${response.status}.`);
-    const result = parsePresidentEA20(await response.json() as unknown, election.id, election.round);
+    const result = parsePresidentEA20(await response.json() as unknown, election.id, election.round, scope);
     if (environment.production && result.phase !== 'o') throw new Error('Resultado de simulado recusado em produção.');
     result.candidates = result.candidates.map(candidate => ({
       ...candidate, photoUrl: this.urls.candidatePhotoUrl(config, election, candidate.id)
@@ -38,10 +38,10 @@ export class TseApiService implements ElectionDataProvider {
     return result;
   }
 
-  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal) {
+  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
     const response = await fetch(this.urls.trackingUrl(config, election), { signal, credentials: 'omit', cache: 'no-cache' });
     if (!response.ok) throw new TseRequestError(response.status, `Acompanhamento do TSE indisponível (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
-    const result = parseEA14(await response.json() as unknown, election.id, election.round);
+    const result = parseEA14(await response.json() as unknown, election.id, election.round, scope);
     if (environment.production && result.phase !== 'o') throw new Error('Acompanhamento de simulado recusado em produção.');
     return result;
   }

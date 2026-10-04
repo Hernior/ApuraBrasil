@@ -1,12 +1,12 @@
 <header class="header">
-  <div class="brand"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></div>
+  <a class="brand" routerLink="/" aria-label="ApuraBrasil — página inicial"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></a>
   <p>Eleições 2026</p>
 </header>
 <main>
   <p class="eyebrow">Acompanhamento eleitoral</p>
   <h1>Eleições Gerais de 2026</h1>
   <p class="intro">Um espaço para acompanhar a apuração e os resultados oficiais.</p>
-  <app-president />
+  <router-outlet />
   <mat-card appearance="outlined">
     <mat-card-header><mat-card-title>Eleições disponíveis</mat-card-title></mat-card-header>
     <mat-card-content aria-live="polite" [attr.aria-busy]="elections.loading()">
@@ -49,5 +49,5 @@
 <footer>
   <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
   <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização recebida do TSE (Presidente): @if (president.result(); as result) { {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
+  <p>Última atualização recebida do TSE (Presidente): @if (president.result(); as result) { {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
 </footer>

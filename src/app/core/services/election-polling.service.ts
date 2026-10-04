@@ -22,13 +22,14 @@ export class ElectionPollingService {
   private readonly provider = inject(ELECTION_DATA_PROVIDER);
   private readonly president = inject(PresidentStore);
   private readonly zone = inject(NgZone);
-  private context: { config: ElectionConfiguration; election: Election } | null = null;
+  private context: { config: ElectionConfiguration; election: Election; scope: string } | null = null;
   private controller: AbortController | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private signature: string | null = null;
   private failures = 0;
   private blockedUntil = 0;
   private listening = false;
+  readonly availableStates = signal<string[]>([]);
   readonly interval = signal<PollingInterval>(15000);
   readonly checking = signal(false);
   readonly message = signal<string | null>(null);
@@ -58,10 +59,10 @@ export class ElectionPollingService {
     }
   };
 
-  activate(config: ElectionConfiguration, election: Election): void {
+  activate(config: ElectionConfiguration, election: Election, scope = 'br'): void {
     this.stop();
-    this.context = { config, election };
-    if (this.president.result()?.electionId !== election.id) this.president.result.set(null);
+    this.context = { config, election, scope };
+    if (this.president.result()?.electionId !== election.id || this.president.result()?.scopeCode !== scope) this.president.result.set(null);
     this.signature = null;
     this.lastResultAt.set(null);
     this.lastCheckedAt.set(null);
@@ -128,14 +129,15 @@ export class ElectionPollingService {
     this.suspended.set(false);
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const tracking = await this.provider.loadTracking(context.config, context.election, controller.signal);
+      const tracking = await this.provider.loadTracking(context.config, context.election, controller.signal, context.scope);
       clearTimeout(timeout);
       if (this.controller !== controller) return;
+      this.availableStates.set(tracking.availableStates);
       this.lastCheckedAt.set(Date.now());
       const previous = this.president.result();
       const changed = this.signature !== tracking.signature;
       if (force || changed || !previous) {
-        const ok = await this.president.load(context.config, context.election);
+        const ok = await this.president.load(context.config, context.election, context.scope);
         if (this.controller !== controller) return;
         if (!ok) throw this.president.failure() ?? new TypeError('Falha na atualização de Presidente.');
         const result = this.president.result()!;

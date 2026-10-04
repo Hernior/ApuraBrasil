@@ -1,3 +1,5 @@
+import { provideRouter, Router } from '@angular/router';
+import { routes } from './app.routes';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
@@ -9,6 +11,7 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [
         provideNoopAnimations(),
+        provideRouter(routes),
         { provide: ELECTION_DATA_PROVIDER, useValue: { loadConfiguration: async () => ({
           generatedDate: '04/10/2026', generatedTime: '17:00:00', generationId: '1',
           phase: 'o', directories: [], elections: []
@@ -20,6 +23,7 @@ describe('AppComponent', () => {
   it('renders discovery without claiming live results', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
+    await TestBed.inject(Router).navigateByUrl('/');
     await fixture.whenStable();
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;

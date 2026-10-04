@@ -12,9 +12,9 @@ export class PresidentStore {
   readonly error = signal<string | null>(null);
   readonly failure = signal<unknown>(null);
 
-  async load(config: ElectionConfiguration, election: Election): Promise<boolean> {
+  async load(config: ElectionConfiguration, election: Election, scope = 'br'): Promise<boolean> {
     this.controller?.abort();
-    if (this.result()?.electionId !== election.id) this.result.set(null);
+    if (this.result()?.electionId !== election.id || this.result()?.scopeCode !== scope) this.result.set(null);
     const controller = new AbortController();
     this.controller = controller;
     this.error.set(null);
@@ -27,7 +27,7 @@ export class PresidentStore {
     this.loading.set(true);
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const result = await this.provider.loadPresident(config, election, controller.signal);
+      const result = await this.provider.loadPresident(config, election, controller.signal, scope);
       if (this.controller === controller) { this.result.set(result); return true; }
       return false;
     } catch (error: unknown) {

@@ -24,7 +24,7 @@ export class ElectionPollingService {
   private readonly provider = inject(ELECTION_DATA_PROVIDER);
   private readonly president = inject(PresidentStore);
   private readonly zone = inject(NgZone);
-  private context: { config: ElectionConfiguration; election: Election; scope: string; officeCode: '1' | '3' | '5' | '6' } | null = null;
+  private context: { config: ElectionConfiguration; election: Election; scope: string; officeCode: '1' | '3' | '5' | '6' | '7' | '8' } | null = null;
   private controller: AbortController | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private signature: string | null = null;
@@ -61,7 +61,7 @@ export class ElectionPollingService {
     }
   };
 
-  activate(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' | '6' = election.kind === 'state' ? '3' : '1'): void {
+  activate(config: ElectionConfiguration, election: Election, scope = 'br', officeCode: '1' | '3' | '5' | '6' | '7' | '8' = election.kind === 'state' ? '3' : '1'): void {
     this.stop();
     this.context = { config, election, scope, officeCode };
     if (this.president.result()?.electionId !== election.id || this.president.result()?.scopeCode !== scope || (this.president.result()?.officeCode ?? '1') !== officeCode) this.president.result.set(null);

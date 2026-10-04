@@ -30,8 +30,12 @@
     }
     @if (!selected() && !elections.loading()) { <p>Eleição de {{ officeName() }} ainda não disponível para esta abrangência.</p> }
     @if (president.result(); as result) {
-      @if (senator()) { <p class="notice"><strong>{{ result.seats }} vagas para Senador.</strong> Os dois votos do eleitor são para candidatos diferentes do mesmo cargo. A situação de cada candidato é a informada pelo TSE.</p> }
-      @if (federalDeputy()) {
+      @if (senator()) {
+        <p class="notice"><strong>{{ result.seats }} vagas para Senador.</strong> Verde claro indica os dois mais votados com votos válidos em toda a UF durante a apuração. Verde indica eleito informado pelo TSE. A situação oficial aparece separadamente.</p>
+        @if (municipalityCode()) { <p>Os votos abaixo são municipais; o destaque e a situação de eleição usam o resultado da UF, gerado em {{ statewideResult()?.generatedDate }} às {{ statewideResult()?.generatedTime }}.</p> }
+        @if (senatorProjection().notice; as notice) { <p role="status">{{ notice }}</p> }
+      }
+      @if (proportional()) {
         <section class="allocation-summary" aria-labelledby="allocation-title">
           <h3 id="allocation-title">Distribuição de {{ allocationResult()?.seats ?? '—' }} vagas · {{ scope().toUpperCase() }}</h3>
           <p class="note">Cálculo do ApuraBrasil com votos válidos nominais e de legenda de toda a UF. A situação oficial do TSE aparece separadamente.</p>
@@ -76,7 +80,7 @@
       }
       <div class="candidates">
         @for (candidate of result.candidates; track candidate.id; let i = $index) {
-          <mat-card appearance="outlined" [class.elected]="candidateAppearance(candidate.id, candidate.status) === 'elected'" [class.provisional]="candidateAppearance(candidate.id, candidate.status) === 'provisional'" [class.highlight]="!senator() && !federalDeputy() && result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
+          <mat-card appearance="outlined" [class.elected]="candidateAppearance(candidate.id, candidate.status) === 'elected'" [class.provisional]="candidateAppearance(candidate.id, candidate.status) === 'provisional'" [class.highlight]="!senator() && !proportional() && result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && i < 2">
             <mat-card-content>
               <div class="candidate-header">
                 @if (candidate.photoUrl && !failedPhotos().has(candidate.id)) {
@@ -101,7 +105,8 @@
               }
               <div class="status"><mat-chip-set [attr.aria-label]="'Situação de ' + candidate.name">
                 <mat-chip class="official-status"><span>TSE: {{ officialStatus(candidate.id, candidate.status) }}</span></mat-chip>
-                @if (federalDeputy() && calculatedWinners().has(candidate.id)) { <mat-chip class="calculated-status"><span>{{ allocation()?.final ? 'Eleito pelo cálculo' : 'Provisoriamente na faixa de eleição' }}</span></mat-chip> }
+                @if (proportional() && calculatedWinners().has(candidate.id)) { <mat-chip class="calculated-status"><span>{{ allocation()?.final ? 'Eleito pelo cálculo' : 'Provisoriamente na faixa de eleição' }}</span></mat-chip> }
+                @if (senator() && candidateAppearance(candidate.id, candidate.status) === 'provisional') { <mat-chip class="calculated-status"><span>Provisoriamente na faixa de eleição</span></mat-chip> }
               </mat-chip-set></div>
             </mat-card-content>
           </mat-card>

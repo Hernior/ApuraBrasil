@@ -4,7 +4,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
 import { routes } from './app.routes';
 import { ELECTION_DATA_PROVIDER } from './core/api/election-data-provider';
-import { parseFederalDeputyEA20, parseGovernorEA20, parsePresidentEA20, parseSenatorEA20 } from './core/api/ea20-parser';
+import { parseFederalDeputyEA20, parseGovernorEA20, parsePresidentEA20, parseSenatorEA20, parseStateDeputyEA20 } from './core/api/ea20-parser';
 import { parseEA14 } from './core/api/ea14-parser';
 import { governorFixture, governorTrackingFixture } from './core/api/governor-test.fixture';
 import { presidentFixture, trackingFixture } from './core/api/president-test.fixture';
@@ -13,21 +13,31 @@ import { ElectionPollingService } from './core/services/election-polling.service
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { senatorFixture } from './core/api/senator-test.fixture';
-import { deputyConfiguration, deputyFixture } from './core/api/federal-deputy-test.fixture';
+import { deputyFixture } from './core/api/federal-deputy-test.fixture';
+import { stateDeputyConfiguration, stateDeputyFixture } from './core/api/state-deputy-test.fixture';
 
 describe('Election tabs with independent federal and state filters', () => {
-  let loadPresident: jasmine.Spy, loadGovernor: jasmine.Spy, loadSenator: jasmine.Spy, loadFederalDeputy: jasmine.Spy;
+  let loadPresident: jasmine.Spy, loadGovernor: jasmine.Spy, loadSenator: jasmine.Spy, loadFederalDeputy: jasmine.Spy, loadStateDeputy: jasmine.Spy;
   beforeEach(() => {
     loadPresident = jasmine.createSpy().and.callFake(async (_c, _e, _s, scope: string) => parsePresidentEA20({ ...presidentFixture(), tpabr: scope.includes('/') ? 'mu' : scope === 'br' ? 'br' : 'uf', cdabr: scope.split('/')[1] ?? scope }, '42', 1, scope));
     loadGovernor = jasmine.createSpy().and.callFake(async (_c, _e, _s, scope: string) => parseGovernorEA20(governorFixture(scope), '43', 1, scope));
-    loadSenator = jasmine.createSpy().and.callFake(async (_c, _e, _s, scope: string) => parseSenatorEA20(senatorFixture(scope), '43', 1, scope));
+    loadSenator = jasmine.createSpy().and.callFake(async (_c, _e, _s, scope: string) => {
+      const result = parseSenatorEA20(senatorFixture(scope), '43', 1, scope);
+      if (scope.includes('/')) result.stateResult = parseSenatorEA20(senatorFixture(scope.split('/')[0]), '43', 1, scope.split('/')[0]);
+      return result;
+    });
+    loadStateDeputy = jasmine.createSpy().and.callFake(async (_c, _e, _s, scope: string) => {
+      const result = parseStateDeputyEA20(stateDeputyFixture(scope), '43', 1, scope);
+      if (scope.includes('/')) result.stateResult = parseStateDeputyEA20(stateDeputyFixture(scope.split('/')[0]), '43', 1, scope.split('/')[0]);
+      return result;
+    });
     loadFederalDeputy = jasmine.createSpy().and.callFake(async (_c, _e, _s, scope: string) => {
       const result = parseFederalDeputyEA20(deputyFixture(scope), '43', 1, scope);
       if (scope.includes('/')) result.stateResult = parseFederalDeputyEA20(deputyFixture(scope.split('/')[0]), '43', 1, scope.split('/')[0]);
       return result;
     });
     TestBed.configureTestingModule({ imports: [AppComponent], providers: [provideRouter(routes), provideNoopAnimations(), { provide: ELECTION_DATA_PROVIDER, useValue: {
-      loadConfiguration: async () => deputyConfiguration, loadPresident, loadGovernor, loadSenator, loadFederalDeputy,
+      loadConfiguration: async () => stateDeputyConfiguration, loadPresident, loadGovernor, loadSenator, loadFederalDeputy, loadStateDeputy,
       loadTracking: async (_c: unknown, e: { kind: string; id: string }, _s: unknown, scope: string) => parseEA14(e.kind === 'state' ? governorTrackingFixture() : trackingFixture(), e.id, 1, scope.split('/')[0]),
       loadMunicipalities: async () => [{ uf: 'al', code: '00001', ibgeCode: '2700001', name: 'Cidade teste', capital: true }, { uf: 'df', code: '97012', ibgeCode: '5300108', name: 'Brasília', capital: true }]
     } }] });
@@ -47,6 +57,56 @@ describe('Election tabs with independent federal and state filters', () => {
   function tab(element: HTMLElement, name: string): HTMLAnchorElement {
     return Array.from(element.querySelectorAll<HTMLAnchorElement>('a[mat-tab-link]')).find(link => link.textContent?.trim() === name)!;
   }
+  it('renders state deputy municipality allocation and switches to district deputy in DF, keeping federal geography', async () => {
+    const fixture = await setup('/deputado-estadual/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('h2')?.textContent).toBe('Deputado Estadual');
+    expect(element.querySelectorAll('.candidates mat-card.provisional').length).toBe(3);
+    expect(element.textContent).toContain('Distribuição de 3 vagas');
+    expect(element.textContent).toContain('Os votos abaixo são do município');
+    TestBed.inject(ElectionNavigationService).selectStateUf('df'); await settle(fixture);
+    expect(element.querySelector('h2')?.textContent).toBe('Deputado Distrital');
+    expect(element.textContent).not.toContain('Deputado Estadual · AL');
+    expect(loadStateDeputy.calls.mostRecent().args[3]).toBe('df');
+    tab(element, 'Presidente').click(); await settle(fixture);
+    expect(TestBed.inject(Router).url).toBe('/');
+    expect(TestBed.inject(ElectionNavigationService).stateFilter().uf).toBe('df');
+  });
+  it('colors final district calculation green with separate official chips', async () => {
+    loadStateDeputy.and.callFake(async (_c, _e, _s, scope: string) => {
+      const data = stateDeputyFixture(scope); data.tf = 's'; data.and = 'f'; data.esae = 'n';
+      data.carg[0]!.agr[0]!.par[0]!.cand[0]!.st = 'Eleito por QP';
+      return parseStateDeputyEA20(data, '43', 1, scope);
+    });
+    const fixture = await setup('/deputado-estadual/uf/df'); const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.candidates mat-card.elected').length).toBe(3);
+    expect(element.querySelector('mat-chip.calculated-status')?.textContent).toContain('Eleito pelo cálculo');
+    expect(element.querySelector('mat-chip.official-status')?.textContent).toContain('TSE: Eleito por QP');
+  });
+  it('uses statewide senator leaders for municipal backgrounds and reserves green for official elected status', async () => {
+    loadSenator.and.callFake(async (_c, _e, _s, scope: string) => {
+      const local = parseSenatorEA20(senatorFixture(scope), '43', 1, scope);
+      const state = parseSenatorEA20(senatorFixture(scope.split('/')[0]), '43', 1, scope.split('/')[0]);
+      state.candidates.push({ ...state.candidates[1]!, id: '999', name: 'Líder somente municipal', votes: 1 });
+      local.candidates.push({ ...state.candidates[2]!, votes: 1000 });
+      local.candidates.sort((a, b) => b.votes! - a.votes!);
+      local.stateResult = state; return local;
+    });
+    const fixture = await setup('/senador/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
+    const cards = Array.from(element.querySelectorAll('.candidates mat-card'));
+    expect(cards[0]?.textContent).toContain('Líder somente municipal'); expect(cards[0]?.classList.contains('provisional')).toBeFalse();
+    expect(element.querySelectorAll('.candidates mat-card.provisional').length).toBe(2);
+    expect(element.querySelector('.candidates mat-card.elected')).toBeNull();
+    loadSenator.and.callFake(async (_c, _e, _s, scope: string) => {
+      const data = senatorFixture(scope); data.and = 'f';
+      data.carg[0]!.agr[0]!.par[0]!.cand[0]!.st = 'Eleito';
+      data.carg[0]!.agr[0]!.par[0]!.cand[1]!.st = 'Não eleito';
+      return parseSenatorEA20(data, '43', 1, scope);
+    });
+    await TestBed.inject(Router).navigateByUrl('/senador/uf/al'); await settle(fixture);
+    expect(element.querySelectorAll('.candidates mat-card.elected').length).toBe(1);
+    expect(element.querySelector('.candidates mat-card.provisional')).toBeNull();
+    expect(element.querySelector('mat-chip.calculated-status')).toBeNull();
+  });
   it('renders deputy municipality votes with statewide allocation and official and provisional status chips', async () => {
     const fixture = await setup('/deputado-federal/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
     expect(loadFederalDeputy.calls.mostRecent().args[3]).toBe('al/00001');
@@ -141,13 +201,12 @@ describe('Election tabs with independent federal and state filters', () => {
     await TestBed.inject(Router).navigateByUrl('/governador/uf/df/municipio/97012'); await settle(fixture);
     expect(loadGovernor.calls.mostRecent().args[3]).toBe('df/97012');
     const count = loadGovernor.calls.count() + loadPresident.calls.count();
-    for (const [name, path] of [['Dep. Estadual', 'deputado-estadual']]) {
-      tab(element, name!).click(); await settle(fixture);
-      expect(TestBed.inject(Router).url).toBe(`/${path}/uf/df/municipio/97012`);
-      expect(element.textContent).toContain('Em implementação');
-      expect(loadGovernor.calls.count() + loadPresident.calls.count()).toBe(count);
-      expect(TestBed.inject(ElectionPollingService).checking()).toBeFalse();
-    }
+    tab(element, 'Dep. Estadual').click(); await settle(fixture);
+    expect(TestBed.inject(Router).url).toBe('/deputado-estadual/uf/df/municipio/97012');
+    expect(element.textContent).toContain('Deputado Distrital');
+    expect(element.textContent).not.toContain('Em implementação');
+    expect(loadStateDeputy.calls.mostRecent().args[3]).toBe('df/97012');
+    expect(loadGovernor.calls.count() + loadPresident.calls.count()).toBe(count);
     tab(element, 'Presidente').click(); await settle(fixture);
     expect(TestBed.inject(Router).url).toBe('/uf/al/municipio/00001');
     expect(navigation.stateFilter()).toEqual({ uf: 'df', municipality: '97012' });
@@ -163,7 +222,7 @@ describe('Election tabs with independent federal and state filters', () => {
     expect(loadPresident.calls.mostRecent().args[3]).toBe('al/00001');
     expect(tab(fixture.nativeElement, 'Governador').getAttribute('aria-disabled')).toBe('true');
   });
-  it('loads UF options for a direct pending route and clears the municipality when changing UF', async () => {
+  it('loads a direct state deputy municipal route and switches to the correct DF office when changing UF', async () => {
     const fixture = await setup('/deputado-estadual/uf/al/municipio/00001');
     const navigation = TestBed.inject(ElectionNavigationService);
     expect(navigation.hasStateUf()).toBeTrue();
@@ -172,6 +231,8 @@ describe('Election tabs with independent federal and state filters', () => {
     navigation.selectStateUf('df'); await settle(fixture);
     expect(TestBed.inject(Router).url).toBe('/deputado-estadual/uf/df');
     expect(navigation.municipality()).toBe('');
+    expect(loadStateDeputy.calls.mostRecent().args[3]).toBe('df');
+    expect(fixture.nativeElement.querySelector('h2').textContent).toBe('Deputado Distrital');
   });
   it('changes the inactive federal filter without reloading Governor and clears only the changed group municipality', async () => {
     const fixture = await setup('/governador/uf/df/municipio/97012');

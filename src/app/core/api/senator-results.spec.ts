@@ -41,14 +41,15 @@ describe('Senator data and polling', () => {
     expect(() => urls.senatorUrl(senatorConfiguration, senatorElection, 'br')).toThrow();
     expect(() => urls.senatorUrl(senatorConfiguration, { ...senatorElection, round: 2 }, 'al')).toThrow();
   });
-  it('loads only the selected municipal result and uses its UF photos', async () => {
-    const fetchSpy = spyOn(window, 'fetch').and.callFake(async input => new Response(JSON.stringify(String(input).includes('-cm.json') ? governorCitiesFixture() : senatorFixture('al/00001'))));
+  it('loads the selected municipal result and its UF context and uses UF photos', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.callFake(async input => new Response(JSON.stringify(String(input).includes('-cm.json') ? governorCitiesFixture() : senatorFixture(String(input).includes('al00001-') ? 'al/00001' : 'al'))));
     const api = TestBed.inject(TseApiService), signal = new AbortController().signal;
     const result = await api.loadSenator(senatorConfiguration, senatorElection, signal, 'al/00001');
     expect(result.candidates[0]?.photoUrl).toContain('/43/fotos/al/');
-    expect(fetchSpy.calls.mostRecent().args[0]).toContain('al00001-c0005-');
+    expect(fetchSpy.calls.mostRecent().args[0]).toContain('al-c0005-');
+    expect(result.stateResult?.scopeCode).toBe('al');
     await expectAsync(api.loadSenator(senatorConfiguration, senatorElection, signal, 'al/00002')).toBeRejected();
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
   it('switches cargo in the same election and UF and skips unchanged tracking', fakeAsync(() => {
     const loadGovernor = jasmine.createSpy().and.resolveTo(parseGovernorEA20(governorFixture(), '43', 1, 'al'));

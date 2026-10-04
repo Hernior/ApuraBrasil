@@ -4,10 +4,11 @@ import { ProportionalAllocation } from '../models/proportional.model';
 
 // Resolução TSE 23.677, arts. 8 a 12-A, texto compilado com alterações de 2026.
 // Todos os cálculos usam votos válidos da UF. QP e sobras não usam o ranking global.
-export function calculateFederalDeputySeats(result: ElectionResult): ProportionalAllocation {
+export function calculateDeputySeats(result: ElectionResult): ProportionalAllocation {
   const final = result.finalTotalization === true && result.progress === 'f' && result.noWinners === false;
   const unavailable = (reason: string): ProportionalAllocation => ({ quotient: null, final: false, unavailableReason: reason, winners: [], groups: [], unfilledSeats: result.seats ?? 0 });
-  if (result.officeCode !== '6' || !/^[a-z]{2}$/.test(result.scopeCode) || /^(br|zz)$/.test(result.scopeCode)) return unavailable('O cálculo de vagas exige o resultado de Deputado Federal de toda a UF.');
+  if (!['6', '7', '8'].includes(result.officeCode ?? '') || !/^[a-z]{2}$/.test(result.scopeCode) || /^(br|zz)$/.test(result.scopeCode) ||
+      (result.officeCode === '7' && result.scopeCode === 'df') || (result.officeCode === '8' && result.scopeCode !== 'df')) return unavailable('O cálculo de vagas exige o resultado do cargo de deputado de toda a UF.');
   if (!result.disclosureAllowed || result.progress === 'n') return unavailable('Cálculo aguardando divulgação da votação estadual.');
   if (result.noWinners === true) return unavailable('O TSE informou totalização sem atribuição de eleitos nesta UF.');
   if (result.finalTotalization && (result.progress !== 'f' || result.noWinners === null)) return unavailable('Cálculo aguardando confirmação da totalização final pelo TSE.');

@@ -14,12 +14,8 @@ export const routes: Routes = [
   { path: 'deputado-federal/uf/:uf', data: { office: 'federal-deputy' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'uf/:uf/municipio/:codigo', loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: 'uf/:uf', loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
-  ...[
-    { path: 'deputado-estadual', office: 'state-deputy' }
-  ].flatMap(tab => [
-    { path: tab.path, redirectTo: '', pathMatch: 'full' as const },
-    { path: `${tab.path}/uf/:uf/municipio/:codigo`, data: { office: tab.office }, loadComponent: () => import('./features/pending/pending-office.component').then(m => m.PendingOfficeComponent) },
-    { path: `${tab.path}/uf/:uf`, data: { office: tab.office }, loadComponent: () => import('./features/pending/pending-office.component').then(m => m.PendingOfficeComponent) }
-  ]),
+  { path: 'deputado-estadual', redirectTo: '', pathMatch: 'full' },
+  { path: 'deputado-estadual/uf/:uf/municipio/:codigo', data: { office: 'state-deputy' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
+  { path: 'deputado-estadual/uf/:uf', data: { office: 'state-deputy' }, loadComponent: () => import('./features/president/president.component').then(m => m.PresidentComponent) },
   { path: '**', redirectTo: '' }
 ];

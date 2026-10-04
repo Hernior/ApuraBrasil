@@ -1,6 +1,6 @@
 import { parseFederalDeputyEA20 } from '../api/ea20-parser';
 import { deputyFixture } from '../api/federal-deputy-test.fixture';
-import { calculateFederalDeputySeats } from './proportional-allocation';
+import { calculateDeputySeats } from './proportional-allocation';
 
 describe('Federal deputy proportional allocation under the 2026 rules', () => {
   const calculate = (data = deputyFixture()) => parseFederalDeputyEA20(data, '43', 1, 'al').allocation!;
@@ -85,7 +85,7 @@ describe('Federal deputy proportional allocation under the 2026 rules', () => {
     const hidden = deputyFixture(); hidden.dv = 'n';
     expect(calculate(hidden).winners).toEqual([]);
     const result = parseFederalDeputyEA20(deputyFixture('al/00001'), '43', 1, 'al/00001');
-    expect(calculateFederalDeputySeats(result).unavailableReason).toContain('toda a UF');
+    expect(calculateDeputySeats(result).unavailableReason).toContain('toda a UF');
   });
   it('only marks final after tf=s, final progress and confirmation that winners may be assigned', () => {
     const data = deputyFixture(); data.and = 'f';

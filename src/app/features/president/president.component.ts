@@ -13,6 +13,7 @@ import { ELECTION_DATA_PROVIDER } from '../../core/api/election-data-provider';
 import { Municipality } from '../../core/api/municipality-parser';
 import { Election, ElectionConfiguration } from '../../core/models/election.model';
 import { TseRequestError } from '../../core/api/tse-request-error';
+import { senatorProjection } from '../../core/services/senator-projection';
 
 @Component({
   selector: 'app-president',
@@ -29,10 +30,12 @@ export class PresidentComponent implements OnDestroy {
   readonly governor = computed(() => this.routeData()?.['office'] === 'governor');
   readonly senator = computed(() => this.routeData()?.['office'] === 'senator');
   readonly federalDeputy = computed(() => this.routeData()?.['office'] === 'federal-deputy');
-  readonly stateOffice = computed(() => this.governor() || this.senator() || this.federalDeputy());
-  readonly officeCode = computed<'1' | '3' | '5' | '6'>(() => this.federalDeputy() ? '6' : this.senator() ? '5' : this.governor() ? '3' : '1');
-  readonly officeName = computed(() => this.federalDeputy() ? 'Deputado Federal' : this.senator() ? 'Senador' : this.governor() ? 'Governador' : 'Presidente');
-  readonly statePath = computed(() => this.federalDeputy() ? '/deputado-federal' : this.senator() ? '/senador' : '/governador');
+  readonly stateDeputy = computed(() => this.routeData()?.['office'] === 'state-deputy');
+  readonly proportional = computed(() => this.federalDeputy() || this.stateDeputy());
+  readonly stateOffice = computed(() => this.governor() || this.senator() || this.proportional());
+  readonly officeCode = computed<'1' | '3' | '5' | '6' | '7' | '8'>(() => this.stateDeputy() ? this.scope() === 'df' ? '8' : '7' : this.federalDeputy() ? '6' : this.senator() ? '5' : this.governor() ? '3' : '1');
+  readonly officeName = computed(() => this.stateDeputy() ? this.scope() === 'df' ? 'Deputado Distrital' : 'Deputado Estadual' : this.federalDeputy() ? 'Deputado Federal' : this.senator() ? 'Senador' : this.governor() ? 'Governador' : 'Presidente');
+  readonly statePath = computed(() => this.stateDeputy() ? '/deputado-estadual' : this.federalDeputy() ? '/deputado-federal' : this.senator() ? '/senador' : '/governador');
   readonly heading = computed(() => this.stateOffice() ? this.officeName() : 'Presidente da República');
   readonly scope = computed(() => this.params()?.get('uf')?.toLowerCase() ?? 'br');
   readonly municipalityCode = computed(() => this.params()?.get('codigo') ?? '');
@@ -47,22 +50,25 @@ export class PresidentComponent implements OnDestroy {
   readonly elections = inject(ElectionStore);
   readonly president = inject(PresidentStore);
   readonly polling = inject(ElectionPollingService);
-  readonly allocationResult = computed(() => { const result = this.president.result(); return this.federalDeputy() ? result?.stateResult ?? result : null; });
+  readonly statewideResult = computed(() => { const result = this.president.result(); return this.proportional() || this.senator() ? result?.stateResult ?? result : null; });
+  readonly allocationResult = computed(() => this.proportional() ? this.statewideResult() : null);
   readonly allocation = computed(() => this.allocationResult()?.allocation);
   readonly calculatedWinners = computed(() => new Set(this.allocation()?.winners.map(w => w.candidateId) ?? []));
-  readonly statewideCandidates = computed(() => new Map(this.allocationResult()?.candidates.map(c => [c.id, c]) ?? []));
+  readonly senatorProjection = computed(() => senatorProjection(this.senator() ? this.statewideResult() : null));
+  readonly senatorLeaders = computed(() => new Set(this.senatorProjection().candidateIds));
+  readonly statewideCandidates = computed(() => new Map(this.statewideResult()?.candidates.map(c => [c.id, c]) ?? []));
   officialStatus(id: string, localStatus: string | null): string {
-    return (this.federalDeputy() ? this.statewideCandidates().get(id)?.status : localStatus) || 'Ainda não informada pelo TSE';
+    return (this.proportional() || this.senator() ? this.statewideCandidates().get(id)?.status : localStatus) || 'Ainda não informada pelo TSE';
   }
   candidateAppearance(id: string, status: string | null): 'elected' | 'provisional' | '' {
-    const calculated = this.federalDeputy() && this.calculatedWinners().has(id);
+    const calculated = this.proportional() && this.calculatedWinners().has(id);
     if (/^eleit[oa](?:$|\s+por\s)/i.test(this.officialStatus(id, status).trim()) || (calculated && this.allocation()?.final)) return 'elected';
-    return calculated ? 'provisional' : '';
+    return calculated || (this.senator() && this.senatorLeaders().has(id)) ? 'provisional' : '';
   }
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());
   readonly available = computed(() => this.elections.elections().filter(e =>
-    (!(this.senator() || this.federalDeputy()) || e.round === 1) && e.kind === (this.stateOffice() ? 'state' : 'federal') && e.scopes.some(s =>
+    (!(this.senator() || this.proportional()) || e.round === 1) && e.kind === (this.stateOffice() ? 'state' : 'federal') && e.scopes.some(s =>
       (this.stateOffice() ? s.code === 'br' || this.scope() === 'br' || s.code === this.scope() : s.code === 'br') &&
       s.offices.some(o => Number(o.code) === Number(this.officeCode())))));
   readonly selected = computed(() => this.available().find(e => e.id === this.selectedId()) ?? this.available()[0] ?? null);

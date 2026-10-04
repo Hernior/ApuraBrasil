@@ -44,8 +44,12 @@ export class TseUrlBuilderService {
     if (election.round !== 1) throw new Error('Deputado Federal não possui segundo turno.');
     return this.stateResultUrl(config, election, scope, '6');
   }
-  private stateResultUrl(config: ElectionConfiguration, election: Election, scope: string, officeCode: '3' | '5' | '6'): string {
-    const officeName = officeCode === '3' ? 'Governador' : officeCode === '5' ? 'Senador' : 'Deputado Federal';
+  stateDeputyUrl(config: ElectionConfiguration, election: Election, scope: string): string {
+    if (election.round !== 1) throw new Error('Deputado Estadual/Distrital não possui segundo turno.');
+    return this.stateResultUrl(config, election, scope, scope.split('/')[0] === 'df' ? '8' : '7');
+  }
+  private stateResultUrl(config: ElectionConfiguration, election: Election, scope: string, officeCode: '3' | '5' | '6' | '7' | '8'): string {
+    const officeName = officeCode === '3' ? 'Governador' : officeCode === '5' ? 'Senador' : officeCode === '6' ? 'Deputado Federal' : officeCode === '7' ? 'Deputado Estadual' : 'Deputado Distrital';
     const uf = scope.split('/')[0]!;
     if (!/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || uf === 'br' || uf === 'zz') throw new Error(`UF ou município de ${officeName} inválido.`);
     if (election.kind !== 'state' || !election.scopes.some(s => (s.code === 'br' || s.code === uf) && s.offices.some(o => o.code.replace(/^0+/, '') === officeCode))) throw new Error(`${officeName} não disponível nesta eleição e UF.`);

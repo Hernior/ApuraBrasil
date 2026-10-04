@@ -1,7 +1,7 @@
 import { Candidate } from '../models/candidate.model';
 import { ElectionResult } from '../models/election-result.model';
 import { ProportionalGroup } from '../models/proportional.model';
-import { calculateFederalDeputySeats } from '../services/proportional-allocation';
+import { calculateDeputySeats } from '../services/proportional-allocation';
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('EA20 inválido: objeto esperado.');
@@ -67,11 +67,19 @@ export function parseSenatorEA20(input: unknown, electionId: string, round: 1 | 
 export function parseFederalDeputyEA20(input: unknown, electionId: string, round: 1 | 2, scope: string): ElectionResult {
   if (round !== 1 || !/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || /^(br|zz)(\/|$)/.test(scope)) throw new Error('Turno ou abrangência de Deputado Federal inválido.');
   const result = parseMajorityEA20(input, electionId, round, scope, '6');
-  if (!scope.includes('/')) result.allocation = calculateFederalDeputySeats(result);
+  if (!scope.includes('/')) result.allocation = calculateDeputySeats(result);
   return result;
 }
 
-function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, scope: string, officeCode: '1' | '3' | '5' | '6'): ElectionResult {
+export function parseStateDeputyEA20(input: unknown, electionId: string, round: 1 | 2, scope: string): ElectionResult {
+  if (round !== 1 || !/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || /^(br|zz)(\/|$)/.test(scope)) throw new Error('Turno ou abrangência de Deputado Estadual/Distrital inválido.');
+  const result = parseMajorityEA20(input, electionId, round, scope, scope.split('/')[0] === 'df' ? '8' : '7');
+  if (!scope.includes('/')) result.allocation = calculateDeputySeats(result);
+  return result;
+}
+
+function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, scope: string, officeCode: '1' | '3' | '5' | '6' | '7' | '8'): ElectionResult {
+  const proportional = ['6', '7', '8'].includes(officeCode);
   const root = object(input);
   const phase = string(root['f']);
   const progress = string(root['and']);
@@ -85,7 +93,7 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
   }
   const offices = array(root['carg']).map(object);
   const office = offices.find(c => id(c['cd']) === officeCode);
-  if (!office || offices.length !== 1) throw new Error(`EA20 não corresponde ao cargo ${officeCode === '1' ? 'Presidente' : officeCode === '3' ? 'Governador' : officeCode === '5' ? 'Senador' : 'Deputado Federal'}.`);
+  if (!office || offices.length !== 1) throw new Error(`EA20 não corresponde ao cargo ${officeCode === '1' ? 'Presidente' : officeCode === '3' ? 'Governador' : officeCode === '5' ? 'Senador' : officeCode === '6' ? 'Deputado Federal' : officeCode === '7' ? 'Deputado Estadual' : 'Deputado Distrital'}.`);
   const federations = new Map<string, string>();
   for (const item of array(office['fed'] ?? [])) {
     const federation = object(item);
@@ -112,12 +120,12 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
           percentage: dv === 's' ? numeric(candidate['pvapn'] ?? candidate['pvap'], true) : null,
           sequence: numeric(candidate['seq']) ?? Number.MAX_SAFE_INTEGER,
           photoUrl: null,
-          ...(officeCode === '6' ? { birthDate: optionalText(candidate['dt']), partyVoteDestination: optionalText(party['dvt']) } : {}),
-          ...(officeCode === '5' ? { substitutes: parseSubstitutes(candidate['vs']) } : {})
+          ...(proportional ? { birthDate: optionalText(candidate['dt']), partyVoteDestination: optionalText(party['dvt']) } : {}),
+          ...(officeCode === '5' ? { substitutes: parseSubstitutes(candidate['vs']), birthDate: optionalText(candidate['dt']) } : {})
         });
       }
     }
-    if (officeCode === '6') {
+    if (proportional) {
       const type = string(group['tp']);
       if (type !== 'i' && type !== 'f') throw new Error('EA20 proporcional: agrupamento inválido.');
       const sum = (field: string): number | null => {
@@ -139,8 +147,8 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
   const votes = object(root['v']);
   return {
     electionId: id(root['ele']), officeCode, seats: numeric(office['nv']), scopeCode: scope, round, phase, generationId: id(root['idg']),
-    ...(officeCode === '6' ? { proportionalGroups, officialQuotient: dv === 's' ? numeric(office['qe']) : null,
-      finalTotalization: root['tf'] === 's', noWinners: root['esae'] === 's' ? true : root['esae'] === 'n' ? false : null } : {}),
+    ...(proportional ? { proportionalGroups, officialQuotient: dv === 's' ? numeric(office['qe']) : null } : {}),
+    ...(proportional || officeCode === '5' ? { finalTotalization: root['tf'] === 's', noWinners: root['esae'] === 's' ? true : root['esae'] === 'n' ? false : null } : {}),
     generatedDate: string(root['dg']), generatedTime: string(root['hg']),
     totalizationDate: optionalText(root['dt']), totalizationTime: optionalText(root['ht']),
     disclosureAllowed: dv === 's', progress: progress as 'n' | 'p' | 'f',

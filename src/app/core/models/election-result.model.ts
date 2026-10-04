@@ -2,7 +2,7 @@ import { Candidate } from './candidate.model';
 import { ProportionalAllocation, ProportionalGroup } from './proportional.model';
 
 export interface ElectionResult {
-  officeCode?: '1' | '3' | '5' | '6';
+  officeCode?: '1' | '3' | '5' | '6' | '7' | '8';
   finalTotalization?: boolean;
   noWinners?: boolean | null;
   officialQuotient?: number | null;

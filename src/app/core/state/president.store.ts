@@ -27,7 +27,8 @@ export class PresidentStore {
     this.loading.set(true);
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const result = await this.provider.loadPresident(config, election, controller.signal, scope);
+      const result = election.kind === 'state' ? await this.provider.loadGovernor(config, election, controller.signal, scope)
+        : await this.provider.loadPresident(config, election, controller.signal, scope);
       if (this.controller === controller) { this.result.set(result); return true; }
       return false;
     } catch (error: unknown) {
@@ -35,7 +36,7 @@ export class PresidentStore {
         this.failure.set(error);
         this.error.set(controller.signal.aborted ? 'A consulta excedeu o tempo limite ou foi interrompida.'
           : error instanceof TypeError ? 'Falha de conexão ao TSE ou bloqueio de acesso pelo navegador.'
-          : error instanceof Error ? error.message : 'Não foi possível consultar Presidente.');
+          : error instanceof Error ? error.message : `Não foi possível consultar ${election.kind === 'state' ? 'Governador' : 'Presidente'}.`);
       }
       return false;
     } finally {

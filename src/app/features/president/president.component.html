@@ -1,8 +1,8 @@
 <section aria-labelledby="president-title">
   <div class="toolbar">
-    <div><p class="eyebrow">{{ scope() === 'br' ? 'Brasil · incluindo o exterior' : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">Presidente da República</h2></div>
+    <div><p class="eyebrow">{{ scope() === 'br' ? (governor() ? 'Selecione uma UF' : 'Brasil · incluindo o exterior') : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">{{ heading() }}</h2></div>
     @if (selected(); as election) {
-      <label class="election-select"><span>Abrangência</span><select [value]="scope()" (change)="selectScope($event)"><option value="br">Brasil</option>@for (uf of polling.availableStates(); track uf) { <option [value]="uf">{{ uf.toUpperCase() }}</option> }</select></label>
+      <label class="election-select"><span>Abrangência</span><select [value]="scope()" (change)="selectScope($event)"><option value="br">{{ governor() ? 'Selecione uma UF' : 'Brasil' }}</option>@for (uf of availableStates(); track uf) { <option [value]="uf">{{ uf.toUpperCase() }}</option> }</select></label>
       @if (scope() !== 'br') {
         <label class="election-select"><span>Município</span><select [value]="municipalityCode()" [disabled]="municipalitiesLoading() || !municipalities().length" (change)="selectMunicipality($event)"><option value="">Toda a UF</option>@for (city of municipalities(); track city.code) { <option [value]="city.code">{{ city.name }}</option> }</select></label>
       }
@@ -15,21 +15,21 @@
         </select>
       </label>
       <label class="election-select"><span>Atualização</span><select [value]="polling.interval()" (change)="selectInterval($event)"><option value="15000">15 segundos</option><option value="30000">30 segundos</option><option value="60000">60 segundos</option><option value="0">Manual</option></select></label>
-      <button matButton="outlined" [disabled]="polling.checking()" (click)="refresh()">Atualizar Presidente</button>
+      <button matButton="outlined" [disabled]="polling.checking() || municipalitiesLoading()" (click)="refresh()">Atualizar {{ officeName() }}</button>
     }
   </div>
   <div aria-live="polite" [attr.aria-busy]="polling.checking()">
     @if (municipalitiesLoading()) { <p>Consultando municípios no TSE…</p> }
     @if (municipalitiesError(); as error) { <p role="alert">{{ error }}</p> }
     @if (polling.live()) { <p class="live">AO VIVO</p> }
-    @if (polling.suspended() && !municipalitiesLoading() && !municipalitiesError()) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
+    @if (polling.suspended() && !municipalitiesLoading() && !municipalitiesError() && !(governor() && scope() === 'br')) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
     @if (polling.message(); as message) { <p role="status">{{ message }}</p> }
     @if (polling.checking()) { <p>Consultando a apuração no TSE…</p> }
     @if (president.error(); as error) {
       <p role="alert">{{ error }}</p>
       @if (president.result()) { <p>Exibindo os últimos dados recebidos. A atualização falhou.</p> }
     }
-    @if (!selected() && !elections.loading()) { <p>Eleição federal de Presidente ainda não disponível.</p> }
+    @if (!selected() && !elections.loading()) { <p>Eleição de {{ officeName() }} ainda não disponível para esta abrangência.</p> }
     @if (president.result(); as result) {
       @if (result.phase === 's') { <p><strong>SIMULADO — estes dados não são resultados oficiais.</strong></p> }
       <p class="update">Arquivo gerado pelo TSE: {{ result.generatedDate }} às {{ result.generatedTime }}.
@@ -44,7 +44,7 @@
         <p>{{ result.progress === 'n' ? 'Totalização não iniciada' : result.progress === 'p' ? 'Totalização em andamento' : 'Totalização finalizada' }}</p>
       </div>
       @if (!result.disclosureAllowed) {
-        <p class="notice">O TSE ainda não autorizou a divulgação da votação de Presidente. Os votos e percentuais dos candidatos não são exibidos.</p>
+        <p class="notice">O TSE ainda não autorizou a divulgação da votação de {{ officeName() }}. Os votos e percentuais dos candidatos não são exibidos.</p>
       } @else {
         <div class="metrics">
           <mat-card appearance="outlined"><mat-card-content><span>Votos válidos</span><strong>{{ result.validVotes === null ? '—' : (result.validVotes | number) }}</strong></mat-card-content></mat-card>
@@ -85,7 +85,7 @@
         } @empty { <p>Nenhum candidato foi disponibilizado neste arquivo.</p> }
       </div>
     } @else if (!polling.checking()) {
-      <p>Nenhum resultado eleitoral foi recebido para Presidente.</p>
+      <p>{{ governor() && scope() === 'br' ? 'Escolha uma UF para acompanhar Governador.' : 'Nenhum resultado eleitoral foi recebido para ' + officeName() + '.' }}</p>
     }
   </div>
 </section>

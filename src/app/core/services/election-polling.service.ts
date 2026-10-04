@@ -147,7 +147,7 @@ export class ElectionPollingService {
       if (force || changed || !previous) {
         const ok = await this.president.load(context.config, context.election, context.scope);
         if (this.controller !== controller) return;
-        if (!ok) throw this.president.failure() ?? new TypeError('Falha na atualização de Presidente.');
+        if (!ok) throw this.president.failure() ?? new TypeError('Falha na atualização do resultado eleitoral.');
         const result = this.president.result()!;
         if (resultCoversTracking(result, tracking) &&
             (force || this.signature === null || result.generationId !== previous?.generationId)) {

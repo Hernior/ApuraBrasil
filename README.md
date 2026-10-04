@@ -158,21 +158,32 @@ Em 04/10/2026, o EA20 de Alagoas respondeu HTTP 200 e CORS para a origem GitHub 
 
 Em 04/10/2026, EA12 federal, EA15 estadual de AL e EA20 federal de Maceió responderam HTTP 200 com CORS para a origem GitHub Pages. Uma verificação separada em ChromeHeadless abriu a rota municipal diretamente e renderizou os dados oficiais. A suíte permanente usa fixtures, sem consultar o TSE. Isso não verifica todos os municípios nem publicação no GitHub Pages.
 
-### Entregas restantes após Presidente por município
+## Governador por UF e município
 
-Estimativa atual: 12 entregas funcionais, sujeitas a divisão em etapas menores:
+- O menu Governador abre `/#/governador`, com seleção de UF sem um resultado nacional agregado. Inclui o Distrito Federal. Rotas diretas: `/#/governador/uf/al` e `/#/governador/uf/al/municipio/27855` (Maceió).
+- A eleição estadual e os turnos disponíveis vêm do EA11. O seletor oferece somente eleições que publicam o cargo Governador na abrangência BR ou na UF aberta. UFs e municípios são descobertos pelo EA12 da eleição estadual, com códigos TSE e IBGE separados e preservação dos zeros à esquerda.
+- Usa o cargo `0003` conforme o [layout EA20](https://www.tse.jus.br/eleicoes/eleicoes-2026-content/arquivos/divulgacao-de-resultados/tse-ea20-arquivo-de-resultado-unificado), no diretório `u` da eleição estadual. Resultados são validados por eleição, turno, cargo e abrangência exata. Não usa IDs fixos nem consulta as 27 UFs simultaneamente.
+- Fotos de Governador usam o diretório `ft` da UF aberta. O mesmo painel de resultados exibe votação, percentuais, andamento, seções, votos válidos, brancos e nulos, comparecimento, abstenção e situação oficial do candidato. Não infere eleição ou segundo turno a partir da posição no ranking.
+- Na UF, acompanha o EA14 estadual e considera somente o registro da UF selecionada. No município, acompanha o EA15 da mesma eleição estadual, usando somente o registro municipal selecionado. Mantém intervalos de 15s/30s/60s/Manual, pausa por visibilidade/offline, backoff, respeito a HTTP 429 e proteção contra respostas antigas.
+- O EA15 indica seções e eleitorado, não cada alteração de votos por cargo. Mudanças exclusivas na votação sem alteração desse registro podem exigir Atualizar Governador. Na sincronização municipal, compara as seções processadas, evitando depender da finalização de outros cargos da eleição estadual.
+- A navegação entre Presidente e Governador cancela a consulta anterior e remove resultados de outro cargo, eleição ou abrangência. O rodapé identifica o cargo dos últimos dados recebidos. Não altera schema, grava em banco nem publica o site.
 
-1. Governador.
-2. Senador, com duas vagas.
-3. Deputado Federal.
-4. Deputado Estadual/Distrital.
-5. Mapas oficiais do IBGE.
-6. Histórico local e gráficos de evolução.
-7. Comparação entre candidatos.
-8. Busca global.
-9. Modo TV.
-10. PWA.
-11. Deploy automático no GitHub Pages.
-12. Dashboard nacional e agregação regional.
+Em 04/10/2026, uma verificação pontual em ChromeHeadless abriu Governador de Alagoas e de Maceió usando EA11, EA12, EA14, EA15 e EA20 oficiais. As duas rotas renderizaram candidatos do cargo correto. EA20 de AL e EA14 estadual também responderam HTTP 200 com CORS para a origem GitHub Pages. A suíte permanente possui 82 testes com fixtures; a verificação oficial separada não integra a suíte. Isso não representa verificação de todos os municípios ou publicação no GitHub Pages.
+
+### Entregas restantes após Governador
+
+Estimativa atual: 11 entregas funcionais, sujeitas a divisão em etapas menores:
+
+1. Senador, com duas vagas.
+2. Deputado Federal.
+3. Deputado Estadual/Distrital.
+4. Mapas oficiais do IBGE.
+5. Histórico local e gráficos de evolução.
+6. Comparação entre candidatos.
+7. Busca global.
+8. Modo TV.
+9. PWA.
+10. Deploy automático no GitHub Pages.
+11. Dashboard nacional e agregação regional.
 
 Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

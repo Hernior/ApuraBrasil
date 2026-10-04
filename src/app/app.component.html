@@ -1,6 +1,7 @@
 <header class="header">
   <a class="brand" routerLink="/" aria-label="ApuraBrasil — página inicial"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></a>
   <p>Eleições 2026</p>
+  <nav aria-label="Cargos"><a matButton="text" routerLink="/">Presidente</a><a matButton="text" routerLink="/governador">Governador</a></nav>
 </header>
 <main>
   <p class="eyebrow">Acompanhamento eleitoral</p>
@@ -49,5 +50,5 @@
 <footer>
   <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
   <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização recebida do TSE (Presidente): @if (president.result(); as result) { {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
+  <p>Última atualização recebida do TSE: @if (president.result(); as result) { {{ result.officeCode === '3' ? 'Governador' : 'Presidente' }} · {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
 </footer>

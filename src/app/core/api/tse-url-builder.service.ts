@@ -33,9 +33,19 @@ export class TseUrlBuilderService {
     return `${directory}/${scope.replace('/', '')}-c0001-e${election.id.padStart(6, '0')}-u.json`;
   }
 
-  candidatePhotoUrl(config: ElectionConfiguration, election: Election, candidateId: string): string | null {
+  governorUrl(config: ElectionConfiguration, election: Election, scope: string): string {
+    const uf = scope.split('/')[0]!;
+    if (!/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || uf === 'br' || uf === 'zz') throw new Error('UF ou município de Governador inválido.');
+    if (election.kind !== 'state' || !election.scopes.some(s => (s.code === 'br' || s.code === uf) && s.offices.some(o => Number(o.code) === 3))) throw new Error('Governador não disponível nesta eleição e UF.');
+    if (!/^\d{1,6}$/.test(election.id)) throw new Error('Código de eleição inválido.');
+    const directory = this.directory(config, election, 'u', uf);
+    if (!directory) throw new Error('Diretório de resultados EA20 ausente no EA11.');
+    return `${directory}/${scope.replace('/', '')}-c0003-e${election.id.padStart(6, '0')}-u.json`;
+  }
+
+  candidatePhotoUrl(config: ElectionConfiguration, election: Election, candidateId: string, uf = 'br'): string | null {
     if (!/^\d+$/.test(candidateId)) return null;
-    const directory = this.directory(config, election, 'ft');
+    const directory = this.directory(config, election, 'ft', uf);
     return directory ? `${directory}/${candidateId}.jpeg` : null;
   }
 

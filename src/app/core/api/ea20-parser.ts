@@ -37,6 +37,15 @@ export function rankCandidates(candidates: Candidate[]): Candidate[] {
 }
 
 export function parsePresidentEA20(input: unknown, electionId: string, round: 1 | 2, scope = 'br'): ElectionResult {
+  return parseMajorityEA20(input, electionId, round, scope, '1');
+}
+
+export function parseGovernorEA20(input: unknown, electionId: string, round: 1 | 2, scope: string): ElectionResult {
+  if (!/^[a-z]{2}(?:\/[0-9]{5})?$/.test(scope) || scope.startsWith('br') || scope.startsWith('zz')) throw new Error('Abrangência de Governador inválida.');
+  return parseMajorityEA20(input, electionId, round, scope, '3');
+}
+
+function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, scope: string, officeCode: '1' | '3'): ElectionResult {
   const root = object(input);
   const phase = string(root['f']);
   const progress = string(root['and']);
@@ -49,8 +58,8 @@ export function parsePresidentEA20(input: unknown, electionId: string, round: 1 
     throw new Error('EA20 inválido: fase, andamento ou divulgação.');
   }
   const offices = array(root['carg']).map(object);
-  const office = offices.find(c => id(c['cd']) === '1');
-  if (!office || offices.length !== 1) throw new Error('EA20 não corresponde ao cargo Presidente.');
+  const office = offices.find(c => id(c['cd']) === officeCode);
+  if (!office || offices.length !== 1) throw new Error(`EA20 não corresponde ao cargo ${officeCode === '1' ? 'Presidente' : 'Governador'}.`);
   const federations = new Map<string, string>();
   for (const item of array(office['fed'] ?? [])) {
     const federation = object(item);
@@ -83,7 +92,7 @@ export function parsePresidentEA20(input: unknown, electionId: string, round: 1 
   const electors = object(root['e']);
   const votes = object(root['v']);
   return {
-    electionId: id(root['ele']), scopeCode: scope, round, phase, generationId: id(root['idg']),
+    electionId: id(root['ele']), officeCode, scopeCode: scope, round, phase, generationId: id(root['idg']),
     generatedDate: string(root['dg']), generatedTime: string(root['hg']),
     totalizationDate: optionalText(root['dt']), totalizationTime: optionalText(root['ht']),
     disclosureAllowed: dv === 's', progress: progress as 'n' | 'p' | 'f',

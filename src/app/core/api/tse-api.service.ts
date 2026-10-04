@@ -3,7 +3,7 @@ import { parseEA15 } from './ea15-parser';
 import { Municipality, parseEA12 } from './municipality-parser';
 import { TseRequestError, retryAfterMilliseconds } from './tse-request-error';
 import { Election, ElectionConfiguration } from '../models/election.model';
-import { parsePresidentEA20 } from './ea20-parser';
+import { parseGovernorEA20, parsePresidentEA20 } from './ea20-parser';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { ElectionDataProvider } from './election-data-provider';
@@ -60,9 +60,23 @@ export class TseApiService implements ElectionDataProvider {
     return result;
   }
 
-  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
+  async loadGovernor(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
+    const url = this.urls.governorUrl(config, election, scope);
     const [uf, municipality] = scope.split('/');
-    const stateElection = municipality ? config.elections.filter(e => e.kind === 'state' && e.cycle === election.cycle && e.date === election.date && e.round === election.round && e.scopes.some(s => s.code === uf || s.code === 'br')) : [];
+    const cities = await this.loadMunicipalities(config, election, signal);
+    if (!cities.some(m => m.uf === uf && (!municipality || m.code === municipality))) throw new Error('UF ou município de Governador não disponível no EA12.');
+    const response = await fetch(url, { signal, credentials: 'omit', cache: 'no-cache' });
+    if (!response.ok) throw new TseRequestError(response.status, `Resultado de Governador indisponível (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
+    const result = parseGovernorEA20(await response.json() as unknown, election.id, election.round, scope);
+    if (environment.production && result.phase !== 'o') throw new Error('Resultado de simulado recusado em produção.');
+    result.candidates = result.candidates.map(candidate => ({ ...candidate, photoUrl: this.urls.candidatePhotoUrl(config, election, candidate.id, uf) }));
+    return result;
+  }
+
+  async loadTracking(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
+    if (election.kind === 'state') this.urls.governorUrl(config, election, scope);
+    const [uf, municipality] = scope.split('/');
+    const stateElection = municipality ? election.kind === 'state' ? [election] : config.elections.filter(e => e.kind === 'state' && e.cycle === election.cycle && e.date === election.date && e.round === election.round && e.scopes.some(s => s.code === uf || s.code === 'br')) : [];
     if (municipality) {
       await this.validateMunicipality(config, election, signal, scope);
       if (!stateElection.length) return {

@@ -57,7 +57,7 @@ describe('Clean responsive election layout', () => {
     expect(getComputedStyle(photo).borderTopWidth).toBe('1px');
     expect(getComputedStyle(photo).borderTopColor).toBe(getComputedStyle(neutral).borderTopColor);
   });
-  it('keeps status chips and uses green, yellow and orange borders with inset shadows and an unchanged card center', async () => {
+  it('keeps status chips and uses green, yellow and red borders with inset shadows and an unchanged card center', async () => {
     const { panel, root } = await setup();
     const result = TestBed.inject(PresidentStore).result()!;
     TestBed.inject(PresidentStore).result.set({ ...result, mathematicallyDefined: null, validVotes: null,
@@ -65,7 +65,7 @@ describe('Clean responsive election layout', () => {
     panel.detectChanges();
     const neutral = root.querySelector('.candidates mat-card:not(.elected):not(.second-round):not(.not-elected)')!;
     for (const [appearance, color, text] of [
-      ['elected', 'rgb(22, 163, 74)', 'ELEITO'], ['second-round', 'rgb(234, 179, 8)', '2º TURNO'], ['not-elected', 'rgb(249, 115, 22)', 'Não eleito']
+      ['elected', 'rgb(22, 163, 74)', 'ELEITO'], ['second-round', 'rgb(234, 179, 8)', '2º TURNO'], ['not-elected', 'rgb(239, 68, 68)', 'Não eleito']
     ]) {
       const card = root.querySelector(`.candidates mat-card.${appearance}`)!;
       const style = getComputedStyle(card);

@@ -1,0 +1,35 @@
+:host { margin-bottom: 0; }
+.toolbar { gap: .75rem; }
+.toolbar > div { min-width: 180px; }
+.toolbar h2 { font-size: 1.3rem; margin: .1rem 0; }
+.toolbar p { margin: 0; }
+.toolbar select { max-width: 190px; padding: .5rem; min-height: 40px; }
+.live-status { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; }
+.live-status p { margin: .35rem 0; font-size: .85rem; }
+.progress-summary { display: flex; align-items: center; gap: 1rem; padding: .65rem 1rem; margin: .5rem 0; font-size: .85rem; }
+.progress-summary strong { font-size: 1.25rem; }
+.progress-summary p { margin: 0; }
+.progress-summary > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; }
+.progress-summary progress { flex: 1; min-width: 80px; max-width: 400px; }
+.essential-metrics { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; font-size: .85rem; padding: .25rem 0 .5rem; }
+.essential-metrics strong { margin-left: .25rem; }
+.essential-metrics p, .scope-note { font-size: .85rem; margin: .25rem 0; }
+.candidates { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: .75rem 0 .25rem; }
+.candidate-header { gap: .75rem; }
+.candidate-header h3 { font-size: 1rem; }
+.vote-line { margin: .75rem 0 .25rem; }
+.vote-line strong { font-size: 1.5rem; }
+.status { margin-top: .5rem; }
+.substitutes { font-size: .85rem; }
+.substitutes summary { cursor: pointer; min-height: 40px; padding: .5rem 0; }
+@media (max-width: 1023px) {
+  .candidates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .toolbar > div { min-width: 0; }
+  .toolbar select { max-width: none; }
+  .progress-summary { flex-wrap: wrap; }
+  .progress-summary > div { display: block; }
+  .progress-summary progress { flex-basis: 100%; max-width: none; }
+  .candidates { grid-template-columns: minmax(0, 1fr); }
+}

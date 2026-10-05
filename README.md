@@ -253,7 +253,14 @@ Em 04/10/2026, uma verificação separada em ChromeHeadless abriu AL/Maceió (ca
 - Dados ausentes não viram zero, zeros reais são preservados e correções podem reduzir a curva. Votos conhecidos podem ser exibidos mesmo quando o percentual do candidato ainda não está disponível. Continua sendo necessário conhecer o percentual de seções para posicionar o ponto no eixo X; votação não autorizada permanece oculta.
 - Testes específicos verificam a alternância do SVG renderizado, manutenção da seleção, ausência de novas leituras ao alternar, valores acima de 100 votos, correções, zeros e campos ausentes. O seletor usa Angular Material e se adapta à largura do celular.
 
-### Entregas restantes após evolução dos votos absolutos
+## Visão compacta da apuração
+
+- Cabeçalho com logo e filtros federal/estadual independentes, cinco abas de cargos e resumo com local, turno, horário TSE, progresso e indicadores essenciais. A fonte e a identificação do projeto continuam no rodapé.
+- Abas internas Angular Material: **Resultados** abre por padrão, **Evolução** carrega o histórico/gráfico ao ser acessada e **Detalhes da apuração** reúne indicadores completos, explicações e distribuição de vagas. Alternar abas preserva o conteúdo já aberto e não reinicia o polling.
+- Os candidatos têm paginação Material em português, com 3 por página por padrão e 6 quando a janela tem pelo menos 1600 × 900. É possível escolher 3, 6 ou 12. A atualização conserva a página, listas menores ajustam o índice e mudanças de cargo, local ou eleição voltam à primeira página. A paginação não faz novas requisições ao TSE. Suplentes de Senador ficam em uma seção expansível no card.
+- Testes em ChromeHeadless verificam a visão inicial de Resultados em 1366 × 768 e 1920 × 1080, incluindo cargos estaduais, municípios e Deputado Distrital. Em dispositivos móveis, filtros são empilhados e candidatos usam uma coluna, com rolagem vertical natural e sem transbordamento horizontal da página. Conteúdo detalhado, alertas, nomes longos, suplentes expandidos ou a escolha de mais candidatos podem exigir rolagem; não se bloqueia nem se corta conteúdo para fazê-lo caber.
+
+### Entregas restantes
 
 Estimativa atual: 6 entregas funcionais, sujeitas a divisão em etapas menores:
 

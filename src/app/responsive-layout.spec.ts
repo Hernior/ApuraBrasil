@@ -11,15 +11,19 @@ import { ElectionNavigationService } from './core/services/election-navigation.s
 import { ElectionHistoryService } from './core/services/election-history.service';
 import { presidentFixture, testElection } from './core/api/president-test.fixture';
 import { parsePresidentEA20 } from './core/api/ea20-parser';
+import { MatTabGroupHarness } from '@angular/material/tabs/testing';
+import { MatPaginatorHarness } from '@angular/material/paginator/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 
 describe('Clean responsive election layout', () => {
   const error = signal<string | null>(null), loading = signal(false);
+  const availableElections = signal([testElection]);
   let load: jasmine.Spy;
   beforeEach(() => {
-    error.set(null); loading.set(false); load = jasmine.createSpy().and.resolveTo(undefined);
+    error.set(null); loading.set(false); availableElections.set([testElection]); load = jasmine.createSpy().and.resolveTo(undefined);
     TestBed.configureTestingModule({ imports: [AppComponent, PresidentComponent], providers: [provideRouter([]), provideNoopAnimations(),
       { provide: ELECTION_DATA_PROVIDER, useValue: {} },
-      { provide: ElectionStore, useValue: { configuration: signal(null), elections: signal([testElection]), error, loading, load, cancel: () => {} } },
+      { provide: ElectionStore, useValue: { configuration: signal(null), elections: availableElections, error, loading, load, cancel: () => {} } },
       { provide: ElectionHistoryService, useValue: { read: async () => [], revision: signal(0), error: signal(null) } },
       { provide: ElectionNavigationService, useValue: { federalFilter: signal({ uf: '' }), stateFilter: signal({ uf: 'al' }), loading: signal(false), error: signal(null), states: signal(['al', 'df']),
         tabs: ['Presidente', 'Governador', 'Senador', 'Dep. Federal', 'Dep. Estadual'].map((label, id) => ({ label, id })),
@@ -59,6 +63,7 @@ describe('Clean responsive election layout', () => {
   });
   it('keeps status chips and uses green, yellow and red borders with inset shadows and an unchanged card center', async () => {
     const { panel, root } = await setup();
+    panel.componentInstance.pageSize.set(6);
     const result = TestBed.inject(PresidentStore).result()!;
     TestBed.inject(PresidentStore).result.set({ ...result, mathematicallyDefined: null, validVotes: null,
       candidates: ['Eleito', '2º turno', 'Não eleito', null].map((status, index) => ({ ...result.candidates[0]!, id: `${index}`, status, elected: false })) });
@@ -116,6 +121,65 @@ describe('Clean responsive election layout', () => {
           const tabs = doc.querySelector<HTMLElement>('.mat-mdc-tab-link-container')!;
           expect(tabs.scrollWidth).toBeGreaterThan(tabs.clientWidth); expect(view.getComputedStyle(tabs).overflowX).toBe('auto');
         }
+      } finally { frame.remove(); }
+    }
+  });
+  it('paginates all candidates, preserves the page on updates and clamps it when the list shrinks', async () => {
+    const { panel, root } = await setup();
+    const store = TestBed.inject(PresidentStore), result = store.result()!;
+    const candidates = Array.from({ length: 10 }, (_, i) => ({ ...result.candidates[0]!, id: `candidate-${i}`, name: `Candidato ${i}`, elected: false, status: null }));
+    store.result.set({ ...result, mathematicallyDefined: null, candidates }); panel.detectChanges();
+    const pager = await TestbedHarnessEnvironment.loader(panel).getHarness(MatPaginatorHarness);
+    expect(root.querySelectorAll('.candidates mat-card').length).toBe(3);
+    await pager.goToNextPage();
+    expect(root.querySelector('.candidates')!.textContent).toContain('Candidato 3');
+    expect(root.querySelector('.candidates .highlight')).toBeNull();
+    const next = root.querySelector<HTMLButtonElement>('.mat-mdc-paginator-navigation-next')!;
+    next.focus(); expect(document.activeElement).toBe(next);
+    store.result.set({ ...store.result()!, candidates: candidates.map(c => ({ ...c, votes: 99 })) }); panel.detectChanges();
+    expect(panel.componentInstance.candidatePageIndex()).toBe(1);
+    await pager.goToLastPage(); expect(root.querySelector('.candidates')!.textContent).toContain('Candidato 9');
+    store.result.set({ ...store.result()!, candidates: candidates.slice(0, 2) }); panel.detectChanges();
+    expect(panel.componentInstance.candidatePageIndex()).toBe(0);
+    expect(root.querySelectorAll('.candidates mat-card').length).toBe(2);
+    store.result.set({ ...store.result()!, candidates: [] }); panel.detectChanges();
+    expect(root.textContent).toContain('Nenhum candidato'); expect(await pager.getRangeLabel()).toBe('0 candidatos');
+    store.result.set({ ...result, candidates }); panel.detectChanges(); await pager.goToNextPage();
+    availableElections.set([{ ...testElection, id: 'other-election' }]); panel.detectChanges();
+    expect(panel.componentInstance.candidatePageIndex()).toBe(0);
+  });
+  it('opens secondary information through tabs and keeps pagination when returning to Results', async () => {
+    const { panel, root } = await setup();
+    const result = TestBed.inject(PresidentStore).result()!;
+    TestBed.inject(PresidentStore).result.set({ ...result, candidates: Array.from({ length: 7 }, (_, i) => ({ ...result.candidates[0]!, id: `${i}` })) }); panel.detectChanges();
+    const loader = TestbedHarnessEnvironment.loader(panel);
+    const tabs = await loader.getHarness(MatTabGroupHarness), pager = await loader.getHarness(MatPaginatorHarness);
+    expect(root.querySelector('app-election-evolution')).toBeNull(); expect(root.querySelector('.metrics')).toBeNull();
+    await pager.goToNextPage();
+    await tabs.selectTab({ label: 'Detalhes da apuração' }); expect(root.querySelector('.metrics')).not.toBeNull();
+    await tabs.selectTab({ label: 'Evolução' }); expect(root.querySelector('app-election-evolution')).not.toBeNull();
+    await tabs.selectTab({ label: 'Resultados' }); expect(panel.componentInstance.candidatePageIndex()).toBe(1);
+  });
+  it('fits the default Results view in 1366×768 and 1920×1080 without hiding overflow or candidate content', async () => {
+    const { panel, root } = await setup();
+    const result = TestBed.inject(PresidentStore).result()!;
+    const styles = () => Array.from(document.querySelectorAll('style')).map(style => style.textContent).join('\n');
+    const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map(link => `<link rel="stylesheet" href="${link.href}">`).join('');
+    for (const [width, height, size] of [[1366, 768, 3], [1920, 1080, 6]]) {
+      panel.componentInstance.pageSize.set(size!);
+      TestBed.inject(PresidentStore).result.set({ ...result, candidates: Array.from({ length: 30 }, (_, i) => ({ ...result.candidates[0]!, id: `${i}`, name: `Candidato de teste ${i}`, status: 'Não eleito', elected: false })) }); panel.detectChanges();
+      const frame = document.createElement('iframe'); frame.style.cssText = `width:${width}px;height:${height}px;border:0`;
+      const loaded = new Promise<void>(resolve => { frame.onload = () => resolve(); });
+      frame.srcdoc = `<html><head>${links}<style>${styles()}</style></head><body>${root.outerHTML}</body></html>`;
+      document.body.append(frame); await loaded;
+      try {
+        const doc = frame.contentDocument!, view = frame.contentWindow!;
+        const boxes = ['.header', 'main', '.toolbar', '.progress-summary', '.essential-metrics', '.candidates', 'mat-paginator', 'footer'].map(selector => `${selector}: ${doc.querySelector(selector)!.getBoundingClientRect().height}`).join(', ');
+        expect(doc.documentElement.scrollHeight).withContext(`vertical overflow at ${width}×${height}: ${boxes}`).toBeLessThanOrEqual(view.innerHeight);
+        expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(view.innerWidth);
+        expect(doc.querySelectorAll('.candidates mat-card').length).toBe(size!);
+        expect(view.getComputedStyle(doc.body).overflowY).not.toBe('hidden');
+        expect(doc.querySelector('mat-paginator')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(view.innerHeight);
       } finally { frame.remove(); }
     }
   });

@@ -15,6 +15,8 @@ import { MatSelectHarness } from '@angular/material/select/testing';
 import { senatorFixture } from './core/api/senator-test.fixture';
 import { deputyFixture } from './core/api/federal-deputy-test.fixture';
 import { stateDeputyConfiguration, stateDeputyFixture } from './core/api/state-deputy-test.fixture';
+import { By } from '@angular/platform-browser';
+import { PresidentComponent } from './features/president/president.component';
 
 describe('Election tabs with independent federal and state filters', () => {
   let loadPresident: jasmine.Spy, loadGovernor: jasmine.Spy, loadSenator: jasmine.Spy, loadFederalDeputy: jasmine.Spy, loadStateDeputy: jasmine.Spy;
@@ -57,12 +59,18 @@ describe('Election tabs with independent federal and state filters', () => {
   function tab(element: HTMLElement, name: string): HTMLAnchorElement {
     return Array.from(element.querySelectorAll<HTMLAnchorElement>('a[mat-tab-link]')).find(link => link.textContent?.trim() === name)!;
   }
+  async function internalTab(fixture: ComponentFixture<AppComponent>, name: string) {
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.result-tabs [role="tab"]')).find(t => t.textContent?.trim() === name)!.click();
+    await settle(fixture);
+  }
   it('renders state deputy municipality allocation and switches to district deputy in DF, keeping federal geography', async () => {
     const fixture = await setup('/deputado-estadual/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('h2')?.textContent).toBe('Deputado Estadual');
     expect(element.querySelectorAll('.candidates mat-card.provisional').length).toBe(3);
+    await internalTab(fixture, 'Detalhes da apuração');
     expect(element.textContent).toContain('Distribuição de 3 vagas');
     expect(element.textContent).toContain('Os votos abaixo são do município');
+    await internalTab(fixture, 'Resultados');
     TestBed.inject(ElectionNavigationService).selectStateUf('df'); await settle(fixture);
     expect(element.querySelector('h2')?.textContent).toBe('Deputado Distrital');
     expect(element.textContent).not.toContain('Deputado Estadual · AL');
@@ -70,6 +78,29 @@ describe('Election tabs with independent federal and state filters', () => {
     tab(element, 'Presidente').click(); await settle(fixture);
     expect(TestBed.inject(Router).url).toBe('/');
     expect(TestBed.inject(ElectionNavigationService).stateFilter().uf).toBe('df');
+  });
+  it('fits the municipal Results overview for all state cargos in both desktop sizes', async () => {
+    const fixture = await setup('/governador/uf/al/municipio/00001');
+    const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map(link => `<link rel="stylesheet" href="${link.href}">`).join('');
+    for (const path of ['/governador/uf/al/municipio/00001', '/senador/uf/al/municipio/00001', '/deputado-federal/uf/al/municipio/00001', '/deputado-estadual/uf/al/municipio/00001', '/deputado-estadual/uf/df']) {
+      await TestBed.inject(Router).navigateByUrl(path); await settle(fixture);
+      for (const [width, height, size] of [[1366, 768, 3], [1920, 1080, 6]]) {
+        const panel = fixture.debugElement.query(By.directive(PresidentComponent)).componentInstance as PresidentComponent;
+        panel.pageSize.set(size!); await settle(fixture);
+        const styles = Array.from(document.querySelectorAll('style')).map(style => style.textContent).join('\n');
+        const frame = document.createElement('iframe'); frame.style.cssText = `width:${width}px;height:${height}px;border:0`;
+        const loaded = new Promise<void>(resolve => { frame.onload = () => resolve(); });
+        frame.srcdoc = `<html><head>${links}<style>${styles}</style></head><body>${fixture.nativeElement.outerHTML}</body></html>`;
+        document.body.append(frame); await loaded;
+        try {
+          const doc = frame.contentDocument!, view = frame.contentWindow!;
+          const boxes = ['.header', '.toolbar', '.progress-summary', '.essential-metrics', '.candidates', 'mat-paginator'].map(selector => `${selector}: ${doc.querySelector(selector)!.getBoundingClientRect().height}`).join(', ');
+          expect(doc.documentElement.scrollHeight).withContext(`${path} at ${width}×${height}: ${boxes}`).toBeLessThanOrEqual(view.innerHeight);
+          expect(doc.documentElement.scrollWidth).withContext(path).toBeLessThanOrEqual(view.innerWidth);
+          expect(doc.querySelector('mat-paginator')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(view.innerHeight);
+        } finally { frame.remove(); }
+      }
+    }
   });
   it('colors final district calculation green with separate official chips', async () => {
     loadStateDeputy.and.callFake(async (_c, _e, _s, scope: string) => {
@@ -118,8 +149,10 @@ describe('Election tabs with independent federal and state filters', () => {
   it('renders deputy municipality votes with statewide allocation and official and provisional status chips', async () => {
     const fixture = await setup('/deputado-federal/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
     expect(loadFederalDeputy.calls.mostRecent().args[3]).toBe('al/00001');
+    await internalTab(fixture, 'Detalhes da apuração');
     expect(element.textContent).toContain('Distribuição de 3 vagas');
     expect(element.textContent).toContain('Os votos abaixo são do município');
+    await internalTab(fixture, 'Resultados');
     expect(element.querySelectorAll('mat-chip.calculated-status').length).toBe(3);
     expect(element.querySelector('mat-chip.calculated-status')?.textContent).toContain('Provisoriamente na faixa de eleição');
     expect(element.querySelectorAll('.candidates mat-card.provisional').length).toBe(3);
@@ -182,7 +215,7 @@ describe('Election tabs with independent federal and state filters', () => {
   });
   it('keeps President on Brazil while selecting a state through the separate Material control', async () => {
     const fixture = await setup();
-    const controls = await TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(MatSelectHarness);
+    const controls = await TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(MatSelectHarness.with({ ancestor: '.scope-controls' }));
     expect(controls.length).toBe(2);
     expect(await controls[0]!.getValueText()).toBe('Brasil inteiro');
     await controls[1]!.open(); await controls[1]!.clickOptions({ text: 'AL' });

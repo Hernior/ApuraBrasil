@@ -1,18 +1,16 @@
 <header class="header">
   <a class="brand" routerLink="/" aria-label="ApuraBrasil — página inicial"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></a>
-  <p>Eleições 2026</p>
-</header>
-<main>
-  <p class="eyebrow">Acompanhamento eleitoral</p>
-  <h1>Eleições Gerais de 2026</h1>
-  <p class="intro">Um espaço para acompanhar a apuração e os resultados oficiais.</p>
+  <p>Eleições Gerais · 2026</p>
   <div class="scope-controls">
-    <mat-form-field appearance="outline"><mat-label>UF Eleição Federal</mat-label><mat-select [value]="navigation.federalFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectFederalUf($event.value)"><mat-option value="">Brasil inteiro</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
-    <mat-form-field appearance="outline"><mat-label>UF Eleição Estadual</mat-label><mat-select [value]="navigation.stateFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectStateUf($event.value)"><mat-option value="">Selecione uma UF</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>UF Eleição Federal</mat-label><mat-select [value]="navigation.federalFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectFederalUf($event.value)"><mat-option value="">Brasil inteiro</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>UF Eleição Estadual</mat-label><mat-select [value]="navigation.stateFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectStateUf($event.value)"><mat-option value="">Selecione uma UF</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
     @if (!navigation.hasStateUf()) { <p>Selecione uma UF na eleição estadual para habilitar as abas estaduais.</p> }
     @if (navigation.loading()) { <p role="status">Carregando UFs…</p> }
     @if (navigation.error(); as error) { <p role="alert">{{ error }}</p><button matButton="outlined" (click)="navigation.retry()">Recarregar UFs</button> }
   </div>
+</header>
+<main>
+  <h1 class="sr-only">ApuraBrasil · Eleições Gerais de 2026</h1>
   <div class="configuration-status" aria-live="polite">
     @if (elections.loading()) { <p>Consultando a configuração oficial do TSE…</p> }
     @if (elections.error(); as error) { <p role="alert">{{ error }}</p><button matButton="outlined" [disabled]="elections.loading()" (click)="elections.load()">Tentar novamente</button> }
@@ -27,7 +25,5 @@
   <mat-tab-nav-panel #cargoPanel><router-outlet /></mat-tab-nav-panel>
 </main>
 <footer>
-  <p>Dados oficiais fornecidos pelo Tribunal Superior Eleitoral (TSE).</p>
-  <p>Este projeto não possui vínculo oficial com o Tribunal Superior Eleitoral.</p>
-  <p>Última atualização recebida do TSE: @if (president.result(); as result) { {{ result.officeCode === '8' ? 'Deputado Distrital' : result.officeCode === '7' ? 'Deputado Estadual' : result.officeCode === '6' ? 'Deputado Federal' : result.officeCode === '5' ? 'Senador' : result.officeCode === '3' ? 'Governador' : 'Presidente' }} · {{ result.scopeCode === 'br' ? 'Brasil' : result.scopeCode.toUpperCase() }} · {{ result.generatedDate }} às {{ result.generatedTime }} } @else { ainda não recebida. }</p>
+  <p>Fonte: Tribunal Superior Eleitoral (TSE) · ApuraBrasil é um projeto independente, sem vínculo oficial com o TSE.</p>
 </footer>

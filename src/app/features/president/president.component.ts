@@ -8,6 +8,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatPaginatorIntl, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { buildElectionShareSummary } from './share-election-summary';
 import { ShareResultDialogComponent } from './share-result-dialog.component';
 import { ElectionStore } from '../../core/state/election.store';
@@ -21,11 +24,21 @@ import { ElectionEvolutionComponent } from '../evolution/election-evolution.comp
 import { ElectionHistoryContext } from '../../core/models/election-snapshot.model';
 import { decisionResult, electionDecisions } from '../../core/services/election-decisions';
 
+function candidatePaginatorLabels(): MatPaginatorIntl {
+  const labels = new MatPaginatorIntl();
+  labels.itemsPerPageLabel = 'Candidatos por página';
+  labels.nextPageLabel = 'Próxima página'; labels.previousPageLabel = 'Página anterior';
+  labels.firstPageLabel = 'Primeira página'; labels.lastPageLabel = 'Última página';
+  labels.getRangeLabel = (page, size, length) => length ? `${page * size + 1}–${Math.min((page + 1) * size, length)} de ${length}` : '0 candidatos';
+  return labels;
+}
+
 @Component({
   selector: 'app-president',
-  imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule, ElectionEvolutionComponent],
+  imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule, MatTabsModule, MatPaginatorModule, ElectionEvolutionComponent],
+  providers: [{ provide: MatPaginatorIntl, useFactory: candidatePaginatorLabels }],
   templateUrl: './president.component.html',
-  styleUrls: ['./president.component.scss', './president-responsive.component.scss'],
+  styleUrls: ['./president.component.scss', './president-responsive.component.scss', './president-dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PresidentComponent implements OnDestroy {
@@ -81,6 +94,13 @@ export class PresidentComponent implements OnDestroy {
   }
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());
+  readonly pageIndex = signal(0);
+  readonly pageSize = signal<number | null>(null);
+  private readonly roomyViewport = toSignal(inject(BreakpointObserver).observe('(min-width: 1600px) and (min-height: 900px)'), { initialValue: { matches: false, breakpoints: {} } });
+  readonly candidatePageSize = computed(() => this.pageSize() ?? (this.roomyViewport().matches ? 6 : 3));
+  readonly candidatePageIndex = computed(() => Math.min(this.pageIndex(), Math.max(0, Math.ceil((this.president.result()?.candidates.length ?? 0) / this.candidatePageSize()) - 1)));
+  readonly pagedCandidates = computed(() => this.president.result()?.candidates.slice(this.candidatePageIndex() * this.candidatePageSize(), (this.candidatePageIndex() + 1) * this.candidatePageSize()) ?? []);
+  changeCandidatePage(event: PageEvent): void { this.pageSize.set(event.pageSize); this.pageIndex.set(event.pageIndex); }
   readonly available = computed(() => this.elections.elections().filter(e =>
     (!(this.senator() || this.proportional()) || e.round === 1) && e.kind === (this.stateOffice() ? 'state' : 'federal') && e.scopes.some(s =>
       (this.stateOffice() ? s.code === 'br' || this.scope() === 'br' || s.code === this.scope() : s.code === 'br') &&
@@ -126,6 +146,11 @@ export class PresidentComponent implements OnDestroy {
   }
 
   constructor() {
+    effect(() => {
+      // Polling keeps the page; changing cargo, location or election resets it.
+      this.scope(); this.municipalityCode(); this.officeCode(); this.selected()?.id;
+      this.pageIndex.set(0);
+    });
     effect(() => {
       const config = this.elections.configuration();
       const election = this.selected();

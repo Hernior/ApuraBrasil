@@ -71,6 +71,7 @@ describe('Clean responsive election layout', () => {
       const style = getComputedStyle(card);
       expect(style.borderTopColor).toBe(color!);
       expect(style.boxShadow).toContain(color!); expect(style.boxShadow).toContain('inset');
+      expect(style.boxShadow).toContain('18px 4px');
       expect(style.backgroundColor).toBe(getComputedStyle(neutral).backgroundColor);
       expect(card.querySelector('mat-chip-set')!.textContent).toContain(text!);
       expect(card.classList.contains('highlight')).toBeFalse();

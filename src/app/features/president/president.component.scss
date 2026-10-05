@@ -12,7 +12,6 @@ progress { width: 100%; height: .65rem; accent-color: #155e75; }
 .metrics small { display: block; margin-top: .25rem; }
 .candidates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; }
 .highlight { border: 2px solid #155e75; }
-.elected { box-shadow: inset 0 0 0 4px #16a34a; }
 .candidate-header { display: flex; gap: 1rem; align-items: center; }
 .candidate-header p { margin: .3rem 0; font-size: .85rem; }
 .photo { object-fit: cover; border-radius: .5rem; }

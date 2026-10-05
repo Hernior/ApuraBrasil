@@ -82,6 +82,21 @@ describe('Clean responsive election layout', () => {
     }
     expect(neutral.querySelector('.official-status')!.textContent).toContain('Ainda não informada');
   });
+  it('omits valid and missing vote destinations and renders other destinations in orange independently of the card status', async () => {
+    const { panel, root } = await setup();
+    const result = TestBed.inject(PresidentStore).result()!;
+    const destinations = ['Válido', ' válido ', 'Anulado sub judice', null];
+    const changed = { ...result, mathematicallyDefined: null, validVotes: null,
+      candidates: destinations.map((voteDestination, index) => ({ ...result.candidates[0]!, id: `${index}`, status: 'Não eleito', elected: false, voteDestination })) };
+    TestBed.inject(PresidentStore).result.set(changed); panel.detectChanges();
+    const chips = root.querySelectorAll('.destination-status');
+    expect(chips.length).toBe(1); expect(chips[0]!.textContent).toContain('Destinação: Anulado sub judice');
+    expect(getComputedStyle(chips[0]!).backgroundColor).toBe('rgb(249, 115, 22)');
+    expect(getComputedStyle(chips[0]!.closest('mat-card')!).borderTopColor).toBe('rgb(239, 68, 68)');
+    expect(root.textContent).not.toContain('Destinação: Válido');
+    TestBed.inject(PresidentStore).result.set({ ...changed, disclosureAllowed: false }); panel.detectChanges();
+    expect(root.querySelector('.destination-status')).toBeNull();
+  });
   it('fits actual CSS viewports at 320, 375, 600, 768 and 1280px, with mobile filters, scrollable tabs and one card column', async () => {
     const { root } = await setup();
     const styles = Array.from(document.querySelectorAll('style')).map(style => style.textContent).join('\n');

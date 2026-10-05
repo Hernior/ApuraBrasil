@@ -19,12 +19,13 @@ import { TseRequestError } from '../../core/api/tse-request-error';
 import { senatorProjection } from '../../core/services/senator-projection';
 import { ElectionEvolutionComponent } from '../evolution/election-evolution.component';
 import { ElectionHistoryContext } from '../../core/models/election-snapshot.model';
+import { decisionResult, electionDecisions } from '../../core/services/election-decisions';
 
 @Component({
   selector: 'app-president',
   imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule, ElectionEvolutionComponent],
   templateUrl: './president.component.html',
-  styleUrl: './president.component.scss',
+  styleUrls: ['./president.component.scss', './president-responsive.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PresidentComponent implements OnDestroy {
@@ -62,12 +63,15 @@ export class PresidentComponent implements OnDestroy {
   readonly calculatedWinners = computed(() => new Set(this.allocation()?.winners.map(w => w.candidateId) ?? []));
   readonly senatorProjection = computed(() => senatorProjection(this.senator() ? this.statewideResult() : null));
   readonly senatorLeaders = computed(() => new Set(this.senatorProjection().candidateIds));
-  readonly statewideCandidates = computed(() => new Map(this.statewideResult()?.candidates.map(c => [c.id, c]) ?? []));
+  readonly decisionAuthority = computed(() => decisionResult(this.president.result()));
+  readonly decisions = computed(() => electionDecisions(this.president.result()));
+  readonly statewideCandidates = computed(() => new Map(this.decisionAuthority()?.candidates.map(c => [c.id, c]) ?? []));
   officialStatus(id: string, localStatus: string | null): string {
-    return (this.proportional() || this.senator() ? this.statewideCandidates().get(id)?.status : localStatus) || 'Ainda não informada pelo TSE';
+    return (this.decisionAuthority() ? this.statewideCandidates().get(id)?.status : this.scope() === 'br' ? localStatus : null) || 'Ainda não informada pelo TSE';
   }
   candidateAppearance(id: string, status: string | null): 'elected' | 'provisional' | '' {
     const calculated = this.proportional() && this.calculatedWinners().has(id);
+    if (this.decisions().has(id)) return 'elected';
     if (/^eleit[oa](?:$|\s+por\s)/i.test(this.officialStatus(id, status).trim()) || (calculated && this.allocation()?.final)) return 'elected';
     return calculated || (this.senator() && this.senatorLeaders().has(id)) ? 'provisional' : '';
   }
@@ -103,7 +107,11 @@ export class PresidentComponent implements OnDestroy {
     const text = buildElectionShareSummary({
       result, officeName: this.officeName(), location, url: url.href,
       officialStatus: candidate => this.officialStatus(candidate.id, candidate.status),
-      calculatedStatus: candidate => this.proportional() && this.calculatedWinners().has(candidate.id)
+      confirmedStatus: candidate => {
+        const decision = this.decisions().get(candidate.id);
+        return decision ? `${decision.label} — ${decision.source}. ${decision.explanation}` : '';
+      },
+      calculatedStatus: candidate => this.decisions().has(candidate.id) ? '' : this.proportional() && this.calculatedWinners().has(candidate.id)
         ? this.allocation()?.final ? 'Eleito pelo cálculo de vagas da UF' : 'Provisoriamente na faixa de eleição da UF'
         : this.senator() && this.candidateAppearance(candidate.id, candidate.status) === 'provisional'
           ? 'Provisoriamente na faixa de eleição da UF' : '',

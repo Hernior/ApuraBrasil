@@ -49,13 +49,17 @@ describe('Governor official data contract', () => {
   it('uses the same state election for EA15 and municipal Governor EA20', async () => {
     const tracking = governorTrackingFixture();
     const municipal = { ...tracking, abr: [...tracking.abr, { ...tracking.abr[0]!, tpabr: 'mun', cdabr: '00001' }] };
-    const fetchSpy = spyOn(window, 'fetch').and.callFake(async input => new Response(JSON.stringify(String(input).includes('-cm.json') ? governorCitiesFixture() : String(input).includes('-ab.json') ? municipal : governorFixture('al/00001'))));
+    const fetchSpy = spyOn(window, 'fetch').and.callFake(async input => {
+      const url = String(input);
+      return new Response(JSON.stringify(url.includes('-cm.json') ? governorCitiesFixture() : url.includes('-ab.json') ? url.includes('/br/') ? tracking : municipal : governorFixture(url.includes('al00001') ? 'al/00001' : 'al')));
+    });
     const api = TestBed.inject(TseApiService), signal = new AbortController().signal;
     const marker = await api.loadTracking(governorConfiguration, governorElection, signal, 'al/00001');
     const result = await api.loadGovernor(governorConfiguration, governorElection, signal, 'al/00001');
     expect(marker.electionId).toBe('43'); expect(result.scopeCode).toBe('al/00001');
     expect(fetchSpy.calls.allArgs().map(a => String(a[0]))).toEqual([
-      jasmine.stringMatching('/43/config/'), jasmine.stringMatching('/43/dados/al/al-e000043-ab.json'), jasmine.stringMatching('/43/dados/al/al00001-c0003-e000043-u.json')
+      jasmine.stringMatching('/43/config/'), jasmine.stringMatching('/43/dados/al/al-e000043-ab.json'), jasmine.stringMatching('/43/dados/br/br-e000043-ab.json'),
+      jasmine.stringMatching('/43/dados/al/al00001-c0003-e000043-u.json'), jasmine.stringMatching('/43/dados/al/al-c0003-e000043-u.json')
     ]);
   });
 });

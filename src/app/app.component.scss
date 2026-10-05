@@ -2,7 +2,7 @@
 .header { padding: 1.5rem max(1rem, calc((100% - 1120px) / 2)); background: #fff; border-bottom: 1px solid #e2e8f0; }
 .brand img { display: block; width: min(300px, 100%); height: auto; }
 .header p { margin: .25rem 0 0; color: #475569; }
-main { width: min(1120px, 100%); padding: 3rem 1rem; margin: 0 auto; flex: 1; }
+main { width: min(1120px, 100%); min-width: 0; padding: 3rem 1rem; margin: 0 auto; flex: 1; }
 .eyebrow { color: #155e75; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
 h1 { font-size: clamp(1.8rem, 5vw, 3rem); margin: .75rem 0; }
 .intro { color: #475569; margin-bottom: 2rem; }
@@ -10,3 +10,13 @@ h1 { font-size: clamp(1.8rem, 5vw, 3rem); margin: .75rem 0; }
 .scope-controls mat-form-field { width: min(100%, 240px); }
 mat-tab-nav-panel { display: block; padding-top: 1.5rem; }
 footer { padding: 1.5rem 1rem; text-align: center; font-size: .8rem; color: #475569; border-top: 1px solid #e2e8f0; }
+@media (max-width: 600px) {
+  .header { padding: 1rem; }
+  .brand img { width: min(240px, 100%); }
+  main { padding: 1.5rem .75rem; }
+  .intro { margin-bottom: 1rem; }
+  .scope-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+  .scope-controls mat-form-field { width: 100%; }
+  mat-tab-nav-panel { padding-top: 1rem; }
+  footer { overflow-wrap: anywhere; }
+}

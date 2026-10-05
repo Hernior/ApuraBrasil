@@ -48,6 +48,11 @@ export class TseApiService implements ElectionDataProvider {
   }
 
   async loadPresident(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope = 'br') {
+    const result = await this.loadPresidentResult(config, election, signal, scope);
+    if (scope !== 'br') result.nationalResult = await this.loadPresidentResult(config, election, signal, 'br');
+    return result;
+  }
+  private async loadPresidentResult(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
     if (scope.includes('/')) await this.validateMunicipality(config, election, signal, scope);
     const response = await fetch(this.urls.presidentUrl(config, election, scope), { signal, credentials: 'omit', cache: 'no-cache' });
     if (response.status === 404) throw new TseRequestError(404, 'Resultado de Presidente ainda não disponível no TSE (404).');
@@ -62,7 +67,7 @@ export class TseApiService implements ElectionDataProvider {
   }
 
   async loadGovernor(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
-    return this.loadStateResult(config, election, signal, scope, '3');
+    return this.loadWithUfResult(config, election, signal, scope, '3');
   }
   async loadSenator(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
     return this.loadWithUfResult(config, election, signal, scope, '5');
@@ -73,7 +78,7 @@ export class TseApiService implements ElectionDataProvider {
   async loadStateDeputy(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string) {
     return this.loadWithUfResult(config, election, signal, scope, scope.split('/')[0] === 'df' ? '8' : '7');
   }
-  private async loadWithUfResult(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string, officeCode: '5' | '6' | '7' | '8') {
+  private async loadWithUfResult(config: ElectionConfiguration, election: Election, signal: AbortSignal, scope: string, officeCode: '3' | '5' | '6' | '7' | '8') {
     const result = await this.loadStateResult(config, election, signal, scope, officeCode);
     if (scope.includes('/')) result.stateResult = await this.loadStateResult(config, election, signal, scope.split('/')[0]!, officeCode);
     return result;
@@ -112,9 +117,13 @@ export class TseApiService implements ElectionDataProvider {
     const response = await fetch(this.urls.trackingUrl(config, trackingElection, municipality ? uf : 'br'), { signal, credentials: 'omit', cache: 'no-cache' });
     if (!response.ok) throw new TseRequestError(response.status, `Acompanhamento do TSE indisponível (HTTP ${response.status}).`, retryAfterMilliseconds(response.headers.get('Retry-After')));
     const input: unknown = await response.json();
-    const result = municipality ? parseEA15(input, trackingElection.id, election.round, uf, municipality) : parseEA14(input, election.id, election.round, scope);
+    let result = municipality ? parseEA15(input, trackingElection.id, election.round, uf, municipality) : parseEA14(input, election.id, election.round, scope);
     if (environment.production && result.phase !== 'o') throw new Error('Acompanhamento de simulado recusado em produção.');
-    if (municipality && ['5', '6', '7', '8'].includes(officeCode ?? '')) {
+    if (election.kind === 'federal' && scope !== 'br') {
+      const nationalTracking = municipality ? await this.loadTracking(config, election, signal, 'br', '1') : parseEA14(input, election.id, election.round, 'br');
+      result = { ...result, nationalTracking, signature: JSON.stringify([result.signature, nationalTracking.signature]) };
+    }
+    if (municipality && ['3', '5', '6', '7', '8'].includes(officeCode ?? (election.kind === 'state' ? '3' : '1'))) {
       const stateTracking = await this.loadTracking(config, election, signal, uf);
       return { ...result, stateTracking, signature: JSON.stringify([result.signature, stateTracking.signature]) };
     }

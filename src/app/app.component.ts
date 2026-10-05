@@ -1,7 +1,6 @@
 import { RouterOutlet, RouterLink } from '@angular/router';
 import { PresidentStore } from './core/state/president.store';
 import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { ElectionStore } from './core/state/election.store';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -12,7 +11,7 @@ import { ElectionNavigationService } from './core/services/election-navigation.s
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MatCardModule, MatButtonModule, MatTabsModule, MatFormFieldModule, MatSelectModule, RouterOutlet, RouterLink],
+  imports: [MatButtonModule, MatTabsModule, MatFormFieldModule, MatSelectModule, RouterOutlet, RouterLink],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

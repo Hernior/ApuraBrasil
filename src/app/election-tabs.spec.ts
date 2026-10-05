@@ -79,7 +79,7 @@ describe('Election tabs with independent federal and state filters', () => {
     });
     const fixture = await setup('/deputado-estadual/uf/df'); const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelectorAll('.candidates mat-card.elected').length).toBe(3);
-    expect(element.querySelector('mat-chip.calculated-status')?.textContent).toContain('Eleito pelo cálculo');
+    expect(element.querySelector('mat-chip.confirmed-status')?.textContent).toContain('ELEITO');
     expect(element.querySelector('mat-chip.official-status')?.textContent).toContain('TSE: Eleito por QP');
   });
   it('uses statewide senator leaders for municipal backgrounds and reserves green for official elected status', async () => {
@@ -132,8 +132,8 @@ describe('Election tabs with independent federal and state filters', () => {
       result.stateResult = parseFederalDeputyEA20(state, '43', 1, 'al'); return result;
     });
     const fixture = await setup('/deputado-federal/uf/al/municipio/00001'); const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelectorAll('mat-chip.calculated-status').length).toBe(3);
-    expect(element.querySelector('mat-chip.calculated-status')?.textContent).toContain('Eleito pelo cálculo');
+    expect(element.querySelectorAll('mat-chip.confirmed-status').length).toBe(3);
+    expect(element.querySelector('mat-chip.confirmed-status')?.textContent).toContain('ELEITO');
     expect(element.querySelectorAll('.candidates mat-card.elected').length).toBe(3);
     expect(element.querySelector('.candidates mat-card.provisional')).toBeNull();
     expect(element.textContent).toContain('TSE: Eleito por QP');

@@ -26,6 +26,16 @@ describe('ElectionPollingService', () => {
     service = TestBed.inject(ElectionPollingService);
   });
   afterEach(() => service.stop());
+  it('does not consider local results synchronized until the national decision result covers its marker', () => {
+    const result = parsePresidentEA20(presidentFixture(), '42', 1);
+    const tracking = parseEA14(trackingFixture(), '42', 1);
+    const combined = { ...tracking, nationalTracking: tracking };
+    expect(resultCoversTracking(result, combined)).toBeFalse();
+    result.nationalResult = { ...result, processedSections: 0 };
+    expect(resultCoversTracking(result, combined)).toBeFalse();
+    result.nationalResult = { ...result, nationalResult: undefined };
+    expect(resultCoversTracking(result, combined)).toBeTrue();
+  });
   it('polls EA14 every 15 seconds and skips unchanged EA20 including idg-only updates', fakeAsync(() => {
     service.activate(testConfiguration, testElection); flushMicrotasks();
     tick(15000); flushMicrotasks();

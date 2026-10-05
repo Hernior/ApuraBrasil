@@ -84,6 +84,8 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
   const phase = string(root['f']);
   const progress = string(root['and']);
   const dv = string(root['dv']);
+  const mathematical = optionalText(root['md']);
+  if (mathematical !== null && !['e', 's', 'n'].includes(mathematical)) throw new Error('EA20: definição matemática inválida.');
   if (id(root['ele']) !== id(electionId) || Number(root['t']) !== round ||
       root['tpabr'] !== (scope.includes('/') ? 'mu' : scope === 'br' ? 'br' : 'uf') || String(root['cdabr']).toLowerCase() !== (scope.split('/')[1] ?? scope)) {
     throw new Error('EA20 não corresponde à eleição ou à abrangência solicitada.');
@@ -108,6 +110,8 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
     for (const party of parties) {
       for (const item of array(party['cand'] ?? [])) {
         const candidate = object(item);
+        const elected = optionalText(candidate['e']);
+        if (elected !== null && !['s', 'n'].includes(elected)) throw new Error('EA20: indicador de eleito inválido.');
         groupCandidateIds.push(id(candidate['sqcand']));
         candidates.push({
           id: id(candidate['sqcand']), number: id(candidate['n']),
@@ -115,6 +119,7 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
           party: string(party['sg']),
           federation: party['nfed'] ? federations.get(id(party['nfed'])) ?? null : null,
           status: optionalText(candidate['st']),
+          elected: elected === null ? null : elected === 's',
           voteDestination: optionalText(candidate['dvt']),
           votes: dv === 's' ? numeric(candidate['vap']) : null,
           percentage: dv === 's' ? numeric(candidate['pvapn'] ?? candidate['pvap'], true) : null,
@@ -144,11 +149,20 @@ function parseMajorityEA20(input: unknown, electionId: string, round: 1 | 2, sco
   if (new Set(candidates.map(c => c.id)).size !== candidates.length) throw new Error('EA20 inválido: candidatos duplicados.');
   const sections = object(root['s']);
   const electors = object(root['e']);
+  const pending = [numeric(electors['esnt']), numeric(electors['esna']), numeric(electors['esni'])];
+  const remaining = pending.some(value => value === null) ? null : pending.reduce<number>((sum, value) => sum + value!, 0);
+  const electorate = numeric(electors['te']);
+  const totalizedElectors = numeric(electors['est']), installedElectors = numeric(electors['esi']), countedElectors = numeric(electors['esa']);
+  const consistentElectors = (electorate === null || totalizedElectors === null || pending[0] === null || electorate === totalizedElectors + pending[0]) &&
+    (totalizedElectors === null || installedElectors === null || pending[2] === null || totalizedElectors === installedElectors + pending[2]) &&
+    (installedElectors === null || countedElectors === null || pending[1] === null || installedElectors === countedElectors + pending[1]);
   const votes = object(root['v']);
   return {
     electionId: id(root['ele']), officeCode, seats: numeric(office['nv']), scopeCode: scope, round, phase, generationId: id(root['idg']),
+    mathematicallyDefined: mathematical as ElectionResult['mathematicallyDefined'],
+    remainingElectors: consistentElectors && remaining !== null && Number.isSafeInteger(remaining) && (electorate === null || remaining <= electorate) ? remaining : null,
     ...(proportional ? { proportionalGroups, officialQuotient: dv === 's' ? numeric(office['qe']) : null } : {}),
-    ...(proportional || officeCode === '5' ? { finalTotalization: root['tf'] === 's', noWinners: root['esae'] === 's' ? true : root['esae'] === 'n' ? false : null } : {}),
+    finalTotalization: root['tf'] === 's', noWinners: root['esae'] === 's' ? true : root['esae'] === 'n' ? false : null,
     generatedDate: string(root['dg']), generatedTime: string(root['hg']),
     totalizationDate: optionalText(root['dt']), totalizationTime: optionalText(root['ht']),
     disclosureAllowed: dv === 's', progress: progress as 'n' | 'p' | 'f',

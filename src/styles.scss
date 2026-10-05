@@ -8,3 +8,5 @@ html {
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
 p { line-height: 1.6; }
+.cargo-tabs .mat-mdc-tab-link-container { overflow-x: auto; scrollbar-width: thin; }
+.cargo-tabs .mat-mdc-tab-link { flex: 0 0 auto; }

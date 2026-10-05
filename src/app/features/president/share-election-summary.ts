@@ -8,6 +8,7 @@ export interface ShareSummaryOptions {
   url: string;
   officialStatus: (candidate: Candidate) => string;
   calculatedStatus: (candidate: Candidate) => string;
+  confirmedStatus?: (candidate: Candidate) => string;
   notice?: string;
 }
 
@@ -29,9 +30,10 @@ export function buildElectionShareSummary(options: ShareSummaryOptions): string 
   ];
   if (options.notice) lines.push(plain(options.notice));
   const statewide = result.stateResult;
-  if (statewide && ['5', '6', '7', '8'].includes(result.officeCode ?? '')) {
+  if (statewide && ['3', '5', '6', '7', '8'].includes(result.officeCode ?? '')) {
     lines.push(`Votos municipais; situação e indicação de eleição referentes à UF. Arquivo estadual: ${plain(statewide.generatedDate)} às ${plain(statewide.generatedTime)} (${percentage(statewide.processedPercentage)} das seções).`);
   }
+  if (result.nationalResult && result.scopeCode !== 'br') lines.push(`Votação local; ELEITO e 2º TURNO referem-se à apuração nacional de Presidente. Arquivo nacional: ${plain(result.nationalResult.generatedDate)} às ${plain(result.nationalResult.generatedTime)}.`);
   if (!result.disclosureAllowed) {
     lines.push('', 'O TSE ainda não autorizou a divulgação da votação.');
   } else {
@@ -43,6 +45,8 @@ export function buildElectionShareSummary(options: ShareSummaryOptions): string 
         `Situação TSE: ${plain(options.officialStatus(candidate))}`);
       if (candidate.voteDestination) lines.push(`Destinação: ${plain(candidate.voteDestination)}`);
       const calculated = options.calculatedStatus(candidate);
+      const confirmed = options.confirmedStatus?.(candidate);
+      if (confirmed) lines.push(`Confirmação: ${plain(confirmed)}`);
       if (calculated) lines.push(`ApuraBrasil: ${plain(calculated)}`);
     });
     if (!candidates.length) lines.push('Nenhum candidato disponibilizado.');

@@ -2,7 +2,7 @@ import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing
 import { parseEA12 } from './municipality-parser';
 import { parseEA15 } from './ea15-parser';
 import { parsePresidentEA20 } from './ea20-parser';
-import { presidentFixture, testConfiguration, testElection } from './president-test.fixture';
+import { presidentFixture, testConfiguration, testElection, trackingFixture } from './president-test.fixture';
 import { TseUrlBuilderService } from './tse-url-builder.service';
 import { TseApiService } from './tse-api.service';
 import { ELECTION_DATA_PROVIDER } from './election-data-provider';
@@ -60,7 +60,7 @@ describe('President municipal results', () => {
   it('loads EA15 from the matching state election and EA20 from the federal election', async () => {
     const fetchSpy = spyOn(window, 'fetch').and.callFake(async input => {
       const url = String(input);
-      return new Response(JSON.stringify(url.includes('-cm.json') ? municipalitiesFixture() : url.includes('-ab.json') ? municipalTrackingFixture() : { ...presidentFixture(), tpabr: 'mu', cdabr: '00001' }));
+      return new Response(JSON.stringify(url.includes('-cm.json') ? municipalitiesFixture() : url.includes('-ab.json') ? url.includes('/br/') ? trackingFixture() : municipalTrackingFixture() : url.includes('/br/') ? presidentFixture() : { ...presidentFixture(), tpabr: 'mu', cdabr: '00001' }));
     });
     const api = TestBed.inject(TseApiService), signal = new AbortController().signal;
     await api.loadTracking(municipalConfiguration, testElection, signal, 'al/00001');
@@ -68,7 +68,9 @@ describe('President municipal results', () => {
     expect(fetchSpy.calls.allArgs().map(a => String(a[0]))).toEqual([
       jasmine.stringMatching('/42/config/mun-e000042-cm.json'),
       jasmine.stringMatching('/43/dados/al/al-e000043-ab.json'),
-      jasmine.stringMatching('/42/dados/al/al00001-c0001-e000042-u.json')
+      jasmine.stringMatching('/42/dados/br/br-e000042-ab.json'),
+      jasmine.stringMatching('/42/dados/al/al00001-c0001-e000042-u.json'),
+      jasmine.stringMatching('/42/dados/br/br-c0001-e000042-u.json')
     ]);
   });
   it('rejects municipality outside the UF and offers manual updates without a paired election', async () => {

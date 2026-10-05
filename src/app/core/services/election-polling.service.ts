@@ -15,9 +15,10 @@ export function resultCoversTracking(result: ElectionResult, tracking: ElectionT
   return (!marker || timestamp(result.totalizationDate, result.totalizationTime) >= marker) &&
     (tracking.national.processedSections === null || (result.processedSections ?? -1) >= tracking.national.processedSections) &&
     (tracking.national.progress !== 'f' || result.progress === 'f') &&
-    (!tracking.stateTracking || (!!result.stateResult && resultCoversTracking(result.stateResult, tracking.stateTracking)));
+    (!tracking.stateTracking || (!!result.stateResult && resultCoversTracking(result.stateResult, tracking.stateTracking))) &&
+    (!tracking.nationalTracking || (!!result.nationalResult && resultCoversTracking(result.nationalResult, tracking.nationalTracking)));
 }
-function generation(result: ElectionResult | null | undefined): string { return result ? `${result.generationId}:${result.stateResult?.generationId ?? ''}` : ''; }
+function generation(result: ElectionResult | null | undefined): string { return result ? `${result.generationId}:${result.stateResult?.generationId ?? ''}:${result.nationalResult?.generationId ?? ''}` : ''; }
 
 @Injectable({ providedIn: 'root' })
 export class ElectionPollingService {

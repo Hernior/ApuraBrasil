@@ -50,7 +50,7 @@ describe('Clean responsive election layout', () => {
     const { root } = await setup();
     const chip = root.querySelector<HTMLElement>('.confirmed-status')!;
     expect(chip.textContent).toContain('ELEITO · TSE'); expect(chip.title).toContain('TSE');
-    expect(getComputedStyle(chip).getPropertyValue('--mdc-chip-elevated-container-color').trim()).toBe('#15803d');
+    expect(getComputedStyle(chip).backgroundColor).toBe('rgb(22, 163, 74)');
     expect(getComputedStyle(root.querySelector('.candidates .elected')!).borderTopColor).toBe('rgb(22, 163, 74)');
     const photo = root.querySelector('.photo')!;
     const neutral = root.querySelector('.candidates mat-card:not(.elected):not(.highlight)')!;
@@ -74,6 +74,10 @@ describe('Clean responsive election layout', () => {
       expect(style.boxShadow).toContain('18px 4px');
       expect(style.backgroundColor).toBe(getComputedStyle(neutral).backgroundColor);
       expect(card.querySelector('mat-chip-set')!.textContent).toContain(text!);
+      for (const chip of Array.from(card.querySelectorAll('mat-chip'))) {
+        expect(getComputedStyle(chip).backgroundColor).toBe(color!);
+        expect(getComputedStyle(chip.querySelector('.mat-mdc-chip-action-label')!).color).toBe('rgb(15, 23, 42)');
+      }
       expect(card.classList.contains('highlight')).toBeFalse();
     }
     expect(neutral.querySelector('.official-status')!.textContent).toContain('Ainda não informada');

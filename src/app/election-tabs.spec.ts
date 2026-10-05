@@ -99,6 +99,9 @@ describe('Election tabs with independent federal and state filters', () => {
     expect(provisionalStyle.borderTopColor).toBe('rgb(134, 239, 172)');
     expect(provisionalStyle.boxShadow).toContain('rgb(134, 239, 172)');
     expect(provisionalStyle.boxShadow).toContain('18px 4px');
+    for (const chip of Array.from(element.querySelectorAll('.candidates mat-card.provisional mat-chip'))) {
+      expect(getComputedStyle(chip).backgroundColor).toBe('rgb(134, 239, 172)');
+    }
     expect(element.querySelector('.candidates mat-card.elected')).toBeNull();
     loadSenator.and.callFake(async (_c, _e, _s, scope: string) => {
       const data = senatorFixture(scope); data.and = 'f';

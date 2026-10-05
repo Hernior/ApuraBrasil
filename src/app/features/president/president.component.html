@@ -18,6 +18,7 @@
       <button matButton="filled" [disabled]="!shareableResult()" (click)="share()">Compartilhar</button>
     }
   </div>
+  @if (historyContext(); as context) { <app-election-evolution [context]="context" /> }
   <div aria-live="polite" [attr.aria-busy]="polling.checking()">
     @if (municipalitiesLoading()) { <p>Consultando municípios no TSE…</p> }
     @if (municipalitiesError(); as error) { <p role="alert">{{ error }}</p> }

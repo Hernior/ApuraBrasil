@@ -17,10 +17,12 @@ import { Municipality } from '../../core/api/municipality-parser';
 import { Election, ElectionConfiguration } from '../../core/models/election.model';
 import { TseRequestError } from '../../core/api/tse-request-error';
 import { senatorProjection } from '../../core/services/senator-projection';
+import { ElectionEvolutionComponent } from '../evolution/election-evolution.component';
+import { ElectionHistoryContext } from '../../core/models/election-snapshot.model';
 
 @Component({
   selector: 'app-president',
-  imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule],
+  imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule, ElectionEvolutionComponent],
   templateUrl: './president.component.html',
   styleUrl: './president.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -81,6 +83,13 @@ export class PresidentComponent implements OnDestroy {
     const scope = this.municipalityCode() ? `${this.scope()}/${this.municipalityCode()}` : this.scope();
     return result && result.electionId === this.selected()?.id && result.scopeCode === scope &&
       (result.officeCode ?? '1') === this.officeCode() ? result : null;
+  });
+  readonly historyContext = computed<ElectionHistoryContext | null>(() => {
+    const election = this.selected();
+    if (!election || (this.stateOffice() && this.scope() === 'br')) return null;
+    return { electionId: election.id, officeCode: this.officeCode(), round: election.round,
+      scopeCode: this.municipalityCode() ? `${this.scope()}/${this.municipalityCode()}` : this.scope(),
+      phase: this.shareableResult()?.phase ?? this.elections.configuration()?.phase ?? 'o' };
   });
 
   share(): void {

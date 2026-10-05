@@ -2,10 +2,12 @@ import { inject, Injectable, signal } from '@angular/core';
 import { ELECTION_DATA_PROVIDER } from '../api/election-data-provider';
 import { Election, ElectionConfiguration } from '../models/election.model';
 import { ElectionResult } from '../models/election-result.model';
+import { ElectionHistoryService } from '../services/election-history.service';
 
 @Injectable({ providedIn: 'root' })
 export class PresidentStore {
   private readonly provider = inject(ELECTION_DATA_PROVIDER);
+  private readonly history = inject(ElectionHistoryService);
   private controller: AbortController | null = null;
   readonly result = signal<ElectionResult | null>(null);
   readonly loading = signal(false);
@@ -32,7 +34,7 @@ export class PresidentStore {
         : officeCode === '5' ? await this.provider.loadSenator(config, election, controller.signal, scope)
         : election.kind === 'state' ? await this.provider.loadGovernor(config, election, controller.signal, scope)
         : await this.provider.loadPresident(config, election, controller.signal, scope);
-      if (this.controller === controller) { this.result.set(result); return true; }
+      if (this.controller === controller) { this.result.set(result); void this.history.record(result); return true; }
       return false;
     } catch (error: unknown) {
       if (this.controller === controller) {

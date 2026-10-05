@@ -6,7 +6,7 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional e por UF consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Presidente, Governador, Senador, Deputado Federal e Deputado Estadual/Distrital incluem resultados por UF e município. Os deputados calculam a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. Histórico, mapas, PWA e workflow de publicação serão implementados em entregas posteriores.
+Presidente, Governador, Senador, Deputado Federal e Deputado Estadual/Distrital incluem resultados por UF e município. Os deputados calculam a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. As cinco abas incluem histórico local e gráfico de evolução percentual. PWA e workflow de publicação serão implementados em entregas posteriores; mapas ficam como melhoria futura.
 
 ## Requisitos e execução
 
@@ -222,17 +222,27 @@ Em 04/10/2026, uma verificação separada em ChromeHeadless abriu AL/Maceió (ca
 - As indicações provisórias e os eleitos pelo cálculo do ApuraBrasil aparecem separados da situação TSE. Para senadores e deputados em municípios, a mensagem identifica que essas informações usam a UF. Simulados, falhas de atualização e votação ainda não liberada conservam os respectivos avisos; votos não autorizados não entram no resumo.
 - O compartilhamento fica desativado até existir um resultado correspondente ao cargo, eleição e recorte abertos. Testes específicos cobrem formatação, cópia, composição do WhatsApp e contexto das abas, sem consultas externas.
 
-### Entregas restantes após Deputado Estadual/Distrital
+## Histórico local e evolução percentual
 
-Estimativa atual: 8 entregas funcionais, sujeitas a divisão em etapas menores:
+- Cada resultado aceito é observado pelo `PresidentStore` e salvo no IndexedDB `apurabrasil-history`, na coleção `snapshots`. A chave de contexto separa eleição, cargo, turno, abrangência (Brasil/UF/município) e fase oficial/simulada. O histórico persiste ao recarregar o mesmo navegador e origem; não é enviado a servidores e não recupera resultados anteriores à primeira observação. Não há banco de dados no servidor.
+- A gravação ocorre em transação e compara o conteúdo com o último registro do recorte: nova geração ou horário sem mudança de apuração não cria duplicata. Mudanças em votos, percentuais, situação ou totalização geram registros, inclusive correções e reversões. Respostas canceladas ou antigas não são registradas; a gravação local não bloqueia a apresentação da apuração atual.
+- A votação ainda não autorizada pelo TSE é omitida do snapshot. Dados municipais e estaduais permanecem separados: o gráfico municipal usa votos e totalização municipais. Fotos, arquivos brutos e resultados estaduais aninhados não são armazenados nesta coleção.
+- O gráfico Apache ECharts usa eixo X numérico de seções totalizadas e eixo Y com o percentual oficial do candidato. **Top 2**, **Top 3**, **Top 5** e **Todos** usam o ranking do último registro. Horários do arquivo e da observação, votos e percentuais aparecem no tooltip; uma tabela permite consultar os registros. Ausências não viram zero e não são interpoladas; percentuais iguais em registros distintos são preservados. As cores distinguem as séries e não representam cores partidárias.
+- O módulo de gráfico é carregado sob demanda, com renderização SVG, ajuste de tamanho e liberação ao sair do painel, conforme a [documentação do Apache ECharts](https://echarts.apache.org/handbook/en/basics/import/). Falhas ou bloqueios de armazenamento local mostram aviso e preservam a apuração atual. Limpar os dados do navegador remove o histórico. Não há limpeza automática nesta entrega.
+- Testes específicos verificam persistência real em IndexedDB, deduplicação concorrente, isolamento, correções, divulgação, respostas antigas, filtros e renderização do gráfico em ChromeHeadless. Não consultam o TSE e usam banco local de teste separado.
 
-1. Mapas oficiais do IBGE.
-2. Histórico local e gráficos de evolução.
-3. Comparação entre candidatos.
-4. Busca global.
-5. Modo TV.
-6. PWA.
-7. Deploy automático no GitHub Pages.
-8. Dashboard nacional e agregação regional.
+### Entregas restantes após histórico e evolução percentual
+
+Estimativa atual: 7 entregas funcionais, sujeitas a divisão em etapas menores:
+
+1. Evolução de votos absolutos.
+2. Comparação entre candidatos.
+3. Busca global.
+4. Modo TV.
+5. PWA.
+6. Deploy automático no GitHub Pages.
+7. Dashboard nacional e agregação regional.
+
+Mapas oficiais do IBGE (Brasil e municípios) ficam como melhoria futura, fora desta sequência.
 
 Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

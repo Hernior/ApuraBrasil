@@ -69,11 +69,15 @@ export class PresidentComponent implements OnDestroy {
   officialStatus(id: string, localStatus: string | null): string {
     return (this.decisionAuthority() ? this.statewideCandidates().get(id)?.status : this.scope() === 'br' ? localStatus : null) || 'Ainda não informada pelo TSE';
   }
-  candidateAppearance(id: string, status: string | null): 'elected' | 'provisional' | '' {
+  candidateAppearance(id: string, status: string | null): 'elected' | 'second-round' | 'not-elected' | 'provisional' | '' {
     const calculated = this.proportional() && this.calculatedWinners().has(id);
-    if (this.decisions().has(id)) return 'elected';
-    if (/^eleit[oa](?:$|\s+por\s)/i.test(this.officialStatus(id, status).trim()) || (calculated && this.allocation()?.final)) return 'elected';
-    return calculated || (this.senator() && this.senatorLeaders().has(id)) ? 'provisional' : '';
+    const decision = this.decisions().get(id);
+    if (decision) return decision.label === '2º TURNO' ? 'second-round' : 'elected';
+    const official = this.officialStatus(id, status).trim();
+    if (/^eleit[oa](?:$|\s+por\s)/i.test(official) || (calculated && this.allocation()?.final)) return 'elected';
+    if (/^2[º°o]?\s*turno$/i.test(official)) return 'second-round';
+    if (calculated || (this.senator() && this.senatorLeaders().has(id))) return 'provisional';
+    return /^não eleit[oa]$/i.test(official) ? 'not-elected' : '';
   }
   readonly selectedId = signal<string | null>(null);
   readonly failedPhotos = signal<Set<string>>(new Set());

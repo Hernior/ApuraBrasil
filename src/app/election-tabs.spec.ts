@@ -95,6 +95,9 @@ describe('Election tabs with independent federal and state filters', () => {
     const cards = Array.from(element.querySelectorAll('.candidates mat-card'));
     expect(cards[0]?.textContent).toContain('Líder somente municipal'); expect(cards[0]?.classList.contains('provisional')).toBeFalse();
     expect(element.querySelectorAll('.candidates mat-card.provisional').length).toBe(2);
+    const provisionalStyle = getComputedStyle(element.querySelector('.candidates mat-card.provisional')!);
+    expect(provisionalStyle.borderTopColor).toBe('rgb(134, 239, 172)');
+    expect(provisionalStyle.boxShadow).toContain('rgb(134, 239, 172)');
     expect(element.querySelector('.candidates mat-card.elected')).toBeNull();
     loadSenator.and.callFake(async (_c, _e, _s, scope: string) => {
       const data = senatorFixture(scope); data.and = 'f';
@@ -104,6 +107,7 @@ describe('Election tabs with independent federal and state filters', () => {
     });
     await TestBed.inject(Router).navigateByUrl('/senador/uf/al'); await settle(fixture);
     expect(element.querySelectorAll('.candidates mat-card.elected').length).toBe(1);
+    expect(element.querySelectorAll('.candidates mat-card.not-elected').length).toBe(1);
     expect(element.querySelector('.candidates mat-card.provisional')).toBeNull();
     expect(element.querySelector('mat-chip.calculated-status')).toBeNull();
   });

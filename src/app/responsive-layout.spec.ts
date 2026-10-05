@@ -57,6 +57,26 @@ describe('Clean responsive election layout', () => {
     expect(getComputedStyle(photo).borderTopWidth).toBe('1px');
     expect(getComputedStyle(photo).borderTopColor).toBe(getComputedStyle(neutral).borderTopColor);
   });
+  it('keeps status chips and uses green, yellow and orange borders with inset shadows and an unchanged card center', async () => {
+    const { panel, root } = await setup();
+    const result = TestBed.inject(PresidentStore).result()!;
+    TestBed.inject(PresidentStore).result.set({ ...result, mathematicallyDefined: null, validVotes: null,
+      candidates: ['Eleito', '2º turno', 'Não eleito', null].map((status, index) => ({ ...result.candidates[0]!, id: `${index}`, status, elected: false })) });
+    panel.detectChanges();
+    const neutral = root.querySelector('.candidates mat-card:not(.elected):not(.second-round):not(.not-elected)')!;
+    for (const [appearance, color, text] of [
+      ['elected', 'rgb(22, 163, 74)', 'ELEITO'], ['second-round', 'rgb(234, 179, 8)', '2º TURNO'], ['not-elected', 'rgb(249, 115, 22)', 'Não eleito']
+    ]) {
+      const card = root.querySelector(`.candidates mat-card.${appearance}`)!;
+      const style = getComputedStyle(card);
+      expect(style.borderTopColor).toBe(color!);
+      expect(style.boxShadow).toContain(color!); expect(style.boxShadow).toContain('inset');
+      expect(style.backgroundColor).toBe(getComputedStyle(neutral).backgroundColor);
+      expect(card.querySelector('mat-chip-set')!.textContent).toContain(text!);
+      expect(card.classList.contains('highlight')).toBeFalse();
+    }
+    expect(neutral.querySelector('.official-status')!.textContent).toContain('Ainda não informada');
+  });
   it('fits actual CSS viewports at 320, 375, 600, 768 and 1280px, with mobile filters, scrollable tabs and one card column', async () => {
     const { root } = await setup();
     const styles = Array.from(document.querySelectorAll('style')).map(style => style.textContent).join('\n');

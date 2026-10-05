@@ -6,7 +6,7 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional e por UF consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Presidente, Governador, Senador, Deputado Federal e Deputado Estadual/Distrital incluem resultados por UF e município. Os deputados calculam a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. As cinco abas incluem histórico local e gráfico de evolução percentual ou de votos absolutos. PWA e workflow de publicação serão implementados em entregas posteriores; mapas ficam como melhoria futura.
+Presidente, Governador, Senador, Deputado Federal e Deputado Estadual/Distrital incluem resultados por UF e município. Os deputados calculam a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. As cinco abas incluem histórico local e gráfico de evolução percentual ou de votos absolutos. O workflow de publicação automática no GitHub Pages está configurado para a main; PWA e dashboard nacional/regional permanecem pendentes.
 
 ## Requisitos e execução
 
@@ -36,7 +36,22 @@ npm run build
 Também pode usar `npx ng build --configuration production`.
 Arquivos estáticos em `dist/ApuraBrasil/browser/`, com baseHref `/ApuraBrasil/`, respeitando maiúsculas e minúsculas do repositório.
 O roteamento usa hash para suportar GitHub Pages. Não há SSR nem backend.
-A publicação automática ainda não foi configurada nesta entrega.
+
+### Publicação automática
+
+O workflow `.github/workflows/deploy-pages.yml` executa em pushes na **main** e permite execução manual nessa mesma branch. Usa Node.js 22, cache npm e `npm ci`, faz o build de produção e envia somente `dist/ApuraBrasil/browser` ao GitHub Pages. O deploy depende do sucesso do build; falhas não publicam um novo artefato. Execuções manuais de outras branches são ignoradas.
+
+No workflow, o `baseHref` vem de `actions/configure-pages`, com barra final. Isso acompanha o nome atual do repositório e sites publicados na raiz ou em domínio próprio. O build local mantém `/ApuraBrasil/`. As rotas com hash continuam funcionando sem regras de redirecionamento no servidor.
+
+Para ativar:
+
+1. No GitHub, abra **Settings → Pages → Build and deployment → Source** e selecione **GitHub Actions**.
+2. Integre este workflow e o projeto atualizado à **main**. O push dispara a publicação.
+3. Acompanhe **Actions → Deploy ApuraBrasil to GitHub Pages**. Para republicar manualmente, use **Run workflow** selecionando **main**.
+
+O ambiente `github-pages` deve permitir deploys da main. O workflow usa as permissões `pages: write` e `id-token: write` apenas no job de publicação; não exige token pessoal nem grava commits em `gh-pages`. A concorrência serializa as publicações sem interromper um deploy em andamento. A configuração da fonte no GitHub e a primeira publicação precisam ser verificadas no repositório remoto.
+
+Referência: [workflows oficiais do GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 
 ## Estrutura
 
@@ -262,15 +277,14 @@ Em 04/10/2026, uma verificação separada em ChromeHeadless abriu AL/Maceió (ca
 
 ### Entregas restantes
 
-Estimativa atual: 6 entregas funcionais, sujeitas a divisão em etapas menores:
+Escopo definido pelo usuário: somente estas 3 entregas. A publicação automática foi implementada a pedido do usuário antes da PWA:
 
-1. Comparação entre candidatos.
-2. Busca global.
-3. Modo TV.
-4. PWA.
-5. Deploy automático no GitHub Pages.
-6. Dashboard nacional e agregação regional.
+1. PWA — aplicação instalável.
+2. Deploy automático no GitHub Pages — workflow implementado; ativação e primeira execução no GitHub pendentes.
+3. Dashboard nacional e agregação regional.
 
-Mapas oficiais do IBGE (Brasil e municípios) ficam como melhoria futura, fora desta sequência.
+Comparação entre candidatos, busca global, modo TV e mapas do IBGE ficam fora do escopo restante.
+
+Restam 2 entregas funcionais: PWA e dashboard nacional/agregação regional.
 
 Cache persistente, limites de concorrência, documentação e testes específicos acompanham as respectivas entregas.

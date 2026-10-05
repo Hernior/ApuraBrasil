@@ -1,0 +1,31 @@
+.confirmed-status { font-weight: 700; }
+.elected { --candidate-accent: #16a34a; }
+.provisional { --candidate-accent: #86efac; }
+.second-round { --candidate-accent: #eab308; }
+.not-elected { --candidate-accent: #ef4444; }
+.elected, .provisional, .second-round, .not-elected {
+  border-color: var(--candidate-accent);
+  box-shadow: inset 0 0 0 3px var(--candidate-accent), inset 0 0 18px 4px color-mix(in srgb, var(--candidate-accent) 30%, transparent);
+}
+:is(.elected, .provisional, .second-round, .not-elected) .status mat-chip:not(.destination-status) {
+  --mat-chip-elevated-container-color: var(--candidate-accent);
+  --mat-chip-outline-color: var(--candidate-accent);
+  --mat-chip-label-text-color: #0f172a;
+}
+.destination-status {
+  --mat-chip-elevated-container-color: #f97316;
+  --mat-chip-outline-color: #f97316;
+  --mat-chip-label-text-color: #0f172a;
+}
+.candidate-header > div { min-width: 0; overflow-wrap: anywhere; }
+.photo { flex-shrink: 0; border: 1px solid var(--mat-card-outlined-outline-color, var(--mat-sys-outline-variant, #cbd5e1)); }
+@media (max-width: 600px) {
+  .toolbar { gap: .75rem; }
+  .toolbar > div { flex-basis: 100%; min-width: 0; }
+  .election-select, .toolbar > button { width: 100%; }
+  select { width: 100%; min-width: 0; max-width: 100%; }
+  .candidates { grid-template-columns: minmax(0, 1fr); }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metrics strong { font-size: 1.15rem; }
+  .progress-summary { padding: 1rem; }
+}

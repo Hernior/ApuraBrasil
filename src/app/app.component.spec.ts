@@ -1,35 +1,35 @@
+import { provideRouter, Router } from '@angular/router';
+import { routes } from './app.routes';
 import { TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
+import { ELECTION_DATA_PROVIDER } from './core/api/election-data-provider';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule
-      ],
-      declarations: [
-        AppComponent
-      ],
+      imports: [AppComponent],
+      providers: [
+        provideNoopAnimations(),
+        provideRouter(routes),
+        { provide: ELECTION_DATA_PROVIDER, useValue: { loadConfiguration: async () => ({
+          generatedDate: '04/10/2026', generatedTime: '17:00:00', generationId: '1',
+          phase: 'o', directories: [], elections: []
+        }) } }
+      ]
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it(`should have as title 'eleicoes-2022'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('eleicoes-2022');
-  });
-
-  it('should render title', () => {
+  it('renders discovery without claiming live results', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('eleicoes-2022 app is running!');
+    await TestBed.inject(Router).navigateByUrl('/');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('.brand img')?.getAttribute('alt')).toBe('ApuraBrasil');
+    expect(element.textContent).toContain('Nenhuma eleição geral');
+    expect(element.textContent).toContain('Nenhum resultado eleitoral foi recebido para Presidente');
+    expect(element.textContent).not.toContain('AO VIVO');
   });
 });

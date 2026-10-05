@@ -1,0 +1,149 @@
+<section aria-labelledby="president-title">
+  <div class="toolbar">
+    <div><p class="eyebrow">{{ scope() === 'br' ? (stateOffice() ? 'Selecione uma UF' : 'Brasil · incluindo o exterior') : municipalityCode() ? (municipality()?.name || municipalityCode()) + ' · ' + scope().toUpperCase() : 'UF · ' + scope().toUpperCase() }}</p><h2 id="president-title">{{ heading() }}</h2>@if (president.result(); as result) { <p class="update">TSE: {{ result.generatedDate }} às {{ result.generatedTime }}</p> }</div>
+    @if (selected(); as election) {
+      @if (scope() !== 'br') {
+        <label class="election-select"><span>Município</span><select [value]="municipalityCode()" [disabled]="municipalitiesLoading() || !municipalities().length" (change)="selectMunicipality($event)"><option value="">Toda a UF</option>@for (city of municipalities(); track city.code) { <option [value]="city.code">{{ city.name }}</option> }</select></label>
+      }
+      <label class="election-select">
+        <span>Eleição</span>
+        <select [value]="election.id" (change)="selectElection($event)">
+          @for (option of available(); track option.id) {
+            <option [value]="option.id">{{ option.round }}º turno · {{ option.date }}</option>
+          }
+        </select>
+      </label>
+      <label class="election-select"><span>Atualização</span><select [value]="polling.interval()" (change)="selectInterval($event)"><option value="15000">15 segundos</option><option value="30000">30 segundos</option><option value="60000">60 segundos</option><option value="0">Manual</option></select></label>
+      <button matButton="outlined" [disabled]="polling.checking() || municipalitiesLoading()" (click)="refresh()">Atualizar {{ officeName() }}</button>
+      <button matButton="filled" [disabled]="!shareableResult()" (click)="share()">Compartilhar</button>
+    }
+  </div>
+  <div aria-live="polite" [attr.aria-busy]="polling.checking()">
+    <div class="live-status">
+    @if (municipalitiesLoading()) { <p>Consultando municípios no TSE…</p> }
+    @if (municipalitiesError(); as error) { <p role="alert">{{ error }}</p> }
+    @if (polling.live()) { <p class="live">AO VIVO</p> }
+    @if (polling.suspended() && !municipalitiesLoading() && !municipalitiesError() && !(stateOffice() && scope() === 'br')) { <p>Atualização pausada: aba em segundo plano ou dispositivo offline.</p> }
+    @if (polling.message(); as message) { <p role="status">{{ message }}</p> }
+    @if (polling.checking()) { <p>Consultando a apuração no TSE…</p> }
+    @if (president.error(); as error) {
+      <p role="alert">{{ error }}</p>
+      @if (president.result()) { <p>Exibindo os últimos dados recebidos. A atualização falhou.</p> }
+    }
+    @if (!selected() && !elections.loading()) { <p>Eleição de {{ officeName() }} ainda não disponível para esta abrangência.</p> }
+    </div>
+    @if (president.result(); as result) {
+      @if (result.phase === 's') { <p><strong>SIMULADO — estes dados não são resultados oficiais.</strong></p> }
+      <div class="progress-summary">
+        <div><strong>{{ result.processedPercentage === null ? '—' : (result.processedPercentage | number:'1.2-2') + '%' }}</strong> das seções totalizadas
+        <p>{{ result.processedSections === null ? '—' : (result.processedSections | number) }} de {{ result.totalSections === null ? '—' : (result.totalSections | number) }} seções</p></div>
+        @if (result.processedPercentage !== null) {
+          <progress max="100" [value]="result.processedPercentage" aria-label="Seções totalizadas"></progress>
+        }
+        <span>{{ result.progress === 'n' ? 'Totalização não iniciada' : result.progress === 'p' ? 'Totalização em andamento' : 'Totalização finalizada' }}</span>
+      </div>
+      <div class="essential-metrics" aria-label="Indicadores essenciais">
+        @if (stateOffice() && result.seats) { <span><strong>{{ result.seats }} vagas para {{ officeName() }}</strong></span> }
+        @if (result.disclosureAllowed) {
+          <span>Votos válidos <strong>{{ result.validVotes === null ? '—' : (result.validVotes | number) }}</strong></span>
+          <span>Comparecimento <strong>{{ result.turnoutPercentage === null ? '—' : (result.turnoutPercentage | number:'1.2-2') + '%' }}</strong></span>
+          <span>Abstenção <strong>{{ result.abstentionPercentage === null ? '—' : (result.abstentionPercentage | number:'1.2-2') + '%' }}</strong></span>
+        } @else { <p role="status">O TSE ainda não autorizou a divulgação da votação. Votos e percentuais permanecem ocultos.</p> }
+      </div>
+      @if ((scope() !== 'br' && !stateOffice()) || (governor() && municipalityCode())) {
+        <p class="scope-note">Votação local · situações eleitorais usam {{ stateOffice() ? 'toda a UF' : 'o Brasil inteiro' }}.</p>
+      }
+      <mat-tab-group class="result-tabs" [preserveContent]="true" animationDuration="0ms" aria-label="Informações da apuração">
+        <mat-tab label="Resultados">
+      <div class="candidates">
+        @for (candidate of pagedCandidates(); track candidate.id; let i = $index) {
+          <mat-card appearance="outlined" [class.elected]="candidateAppearance(candidate.id, candidate.status) === 'elected'" [class.second-round]="candidateAppearance(candidate.id, candidate.status) === 'second-round'" [class.not-elected]="candidateAppearance(candidate.id, candidate.status) === 'not-elected'" [class.provisional]="candidateAppearance(candidate.id, candidate.status) === 'provisional'" [class.highlight]="candidateAppearance(candidate.id, candidate.status) === '' && !senator() && !proportional() && result.disclosureAllowed && candidate.votes !== null && candidate.votes > 0 && candidatePageIndex() * candidatePageSize() + i < 2">
+            <mat-card-content>
+              <div class="candidate-header">
+                @if (candidate.photoUrl && !failedPhotos().has(candidate.id)) {
+                  <img class="photo" [src]="candidate.photoUrl" alt="" width="64" height="80" loading="lazy" (error)="photoFailed(candidate.id)">
+                }
+                <div>
+                  <h3>{{ candidate.name }}</h3>
+                  <p>Nº {{ candidate.number }} · {{ candidate.party }}</p>
+                  @if (candidate.federation) { <p>Federação: {{ candidate.federation }}</p> }
+                  @if (senator() && candidate.substitutes?.length) { <details class="substitutes"><summary>Suplentes</summary>@for (substitute of candidate.substitutes || []; track substitute.type) { <p>{{ substitute.type === 's1' ? '1º suplente' : '2º suplente' }}: {{ substitute.name }} · {{ substitute.party }}</p> }</details> }
+                </div>
+              </div>
+              @if (result.disclosureAllowed) {
+                <div class="vote-line">
+                  <strong>{{ candidate.percentage === null ? '—' : (candidate.percentage | number:'1.2-2') + '%' }}</strong>
+                  <span>{{ candidate.votes === null ? '—' : (candidate.votes | number) }} votos</span>
+                </div>
+                @if (candidate.percentage !== null) {
+                  <progress max="100" [value]="candidate.percentage" [attr.aria-label]="'Percentual de ' + candidate.name"></progress>
+                }
+              }
+              <div class="status"><mat-chip-set [attr.aria-label]="'Situação de ' + candidate.name">
+                @if (result.disclosureAllowed && candidate.voteDestination && candidate.voteDestination.trim().toLowerCase() !== 'válido') { <mat-chip class="destination-status"><span>Destinação: {{ candidate.voteDestination }}</span></mat-chip> }
+                @if (decisions().get(candidate.id); as decision) { <mat-chip class="confirmed-status" [attr.title]="decision.source + ': ' + decision.explanation + ' Situação TSE: ' + officialStatus(candidate.id, candidate.status)" [aria-label]="decision.label + ' — ' + decision.source + ': ' + decision.explanation + ' Situação TSE: ' + officialStatus(candidate.id, candidate.status)"><span>{{ decision.label }} · {{ decision.source }}</span></mat-chip> }
+                @if (showOfficialStatus(candidate.id, candidate.status)) { <mat-chip class="official-status"><span>TSE: {{ officialStatus(candidate.id, candidate.status) }}</span></mat-chip> }
+                @if (proportional() && calculatedWinners().has(candidate.id) && !decisions().has(candidate.id)) { <mat-chip class="calculated-status"><span>{{ allocation()?.final ? 'Eleito pelo cálculo' : 'Provisoriamente na faixa de eleição' }}</span></mat-chip> }
+                @if (senator() && candidateAppearance(candidate.id, candidate.status) === 'provisional') { <mat-chip class="calculated-status"><span>Provisoriamente na faixa de eleição</span></mat-chip> }
+              </mat-chip-set></div>
+            </mat-card-content>
+          </mat-card>
+        } @empty { <p>Nenhum candidato foi disponibilizado neste arquivo.</p> }
+      </div>
+
+          <mat-paginator [length]="result.candidates.length" [pageSize]="candidatePageSize()" [pageIndex]="candidatePageIndex()" [pageSizeOptions]="[3, 6, 12]" [showFirstLastButtons]="true" (page)="changeCandidatePage($event)" aria-label="Paginação dos candidatos" />
+        </mat-tab>
+        <mat-tab label="Evolução"><ng-template matTabContent>
+          @if (historyContext(); as context) { <app-election-evolution [context]="context" /> }
+        </ng-template></mat-tab>
+        <mat-tab label="Detalhes da apuração"><ng-template matTabContent>
+      @if (scope() !== 'br' && !stateOffice()) { <p class="note">A votação abaixo é local; ELEITO e 2º TURNO usam a apuração nacional de Presidente.</p> }
+      @if (governor() && municipalityCode()) { <p class="note">A votação abaixo é municipal; ELEITO e 2º TURNO usam a apuração de Governador em toda a UF.</p> }
+      @if (decisions().size) { <p class="note">A origem de cada confirmação aparece na descrição do chip. Cálculos do ApuraBrasil consideram a votação e a elegibilidade atuais e podem ser revistos após correções ou decisões judiciais do TSE.</p> }
+      @if (senator()) {
+        <p class="notice"><strong>{{ result.seats }} vagas para Senador.</strong> Verde claro indica os dois mais votados com votos válidos em toda a UF durante a apuração. Verde indica eleição confirmada pelo TSE ou pelo cálculo matemático do ApuraBrasil. A situação oficial aparece separadamente.</p>
+        @if (municipalityCode()) { <p>Os votos abaixo são municipais; o destaque e a situação de eleição usam o resultado da UF, gerado em {{ statewideResult()?.generatedDate }} às {{ statewideResult()?.generatedTime }}.</p> }
+        @if (senatorProjection().notice; as notice) { <p role="status">{{ notice }}</p> }
+      }
+      @if (proportional()) {
+        <section class="allocation-summary" aria-labelledby="allocation-title">
+          <h3 id="allocation-title">Distribuição de {{ allocationResult()?.seats ?? '—' }} vagas · {{ scope().toUpperCase() }}</h3>
+          <p class="note">Cálculo do ApuraBrasil com votos válidos nominais e de legenda de toda a UF. A situação oficial do TSE aparece separadamente.</p>
+          @if (municipalityCode()) { <p>Os votos abaixo são do município. As vagas e a situação dos candidatos referem-se à UF.</p> }
+          @if (allocationResult(); as statewide) { <p class="update">Resultado estadual gerado: {{ statewide.generatedDate }} às {{ statewide.generatedTime }} · {{ statewide.processedPercentage === null ? '—' : (statewide.processedPercentage | number:'1.2-2') + '%' }} das seções estaduais.</p> }
+          @if (allocation(); as distribution) {
+            @if (distribution.unavailableReason) { <p role="status">Cálculo indisponível: {{ distribution.unavailableReason }}</p> }
+            @else {
+              <p><strong>{{ distribution.final ? 'Cálculo após a totalização da UF' : 'Distribuição provisória — pode mudar durante a apuração' }}</strong></p>
+              <p>Quociente eleitoral calculado: {{ distribution.quotient | number }} · TSE: {{ allocationResult()?.officialQuotient === null ? '—' : (allocationResult()?.officialQuotient | number) }}</p>
+              <div class="allocation-table"><table><caption>Vagas por partido ou federação na UF</caption><thead><tr><th scope="col">Partido / federação</th><th scope="col">Votos válidos</th><th scope="col">QP</th><th scope="col">Vagas pelo cálculo</th><th scope="col">Vagas TSE</th></tr></thead><tbody>
+                @for (group of distribution.groups; track group.id) { <tr><th scope="row">{{ group.name }}</th><td>{{ group.votes | number }}</td><td>{{ group.quotient }}</td><td>{{ group.seats }}</td><td>{{ group.officialSeats === null ? '—' : group.officialSeats }}</td></tr> }
+              </tbody></table></div>
+              @if (distribution.unfilledSeats) { <p>{{ distribution.unfilledSeats }} vagas sem preenchimento pelo cálculo com os candidatos disponíveis.</p> }
+            }
+          }
+        </section>
+      }
+      <p class="update">Arquivo gerado pelo TSE: {{ result.generatedDate }} às {{ result.generatedTime }}.
+        @if (result.totalizationTime) { Totalização: {{ result.totalizationDate }} às {{ result.totalizationTime }}. }
+      </p>
+      @if (!result.disclosureAllowed) {
+        <p class="notice">O TSE ainda não autorizou a divulgação da votação de {{ officeName() }}. Os votos e percentuais dos candidatos não são exibidos.</p>
+      } @else {
+        <div class="metrics">
+          <mat-card appearance="outlined"><mat-card-content><span>Votos válidos</span><strong>{{ result.validVotes === null ? '—' : (result.validVotes | number) }}</strong></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Votos brancos</span><strong>{{ result.blankVotes === null ? '—' : (result.blankVotes | number) }}</strong></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Total de votos nulos</span><strong>{{ result.nullVotes === null ? '—' : (result.nullVotes | number) }}</strong><small>Inclui nulos técnicos</small></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Comparecimento</span><strong>{{ result.turnout === null ? '—' : (result.turnout | number) }}</strong><small>{{ result.turnoutPercentage === null ? '—' : (result.turnoutPercentage | number:'1.2-2') + '%' }}</small></mat-card-content></mat-card>
+          <mat-card appearance="outlined"><mat-card-content><span>Abstenção</span><strong>{{ result.abstention === null ? '—' : (result.abstention | number) }}</strong><small>{{ result.abstentionPercentage === null ? '—' : (result.abstentionPercentage | number:'1.2-2') + '%' }}</small></mat-card-content></mat-card>
+        </div>
+        <p class="note">Percentuais dos candidatos conforme o TSE: votos computados em relação aos votos a votáveis concorrentes. Comparecimento e abstenção referem-se às seções instaladas já totalizadas.</p>
+      }
+
+        </ng-template></mat-tab>
+      </mat-tab-group>
+    } @else if (!polling.checking()) {
+      <p>{{ stateOffice() && scope() === 'br' ? 'Escolha uma UF para acompanhar ' + officeName() + '.' : 'Nenhum resultado eleitoral foi recebido para ' + officeName() + '.' }}</p>
+    }
+  </div>
+</section>

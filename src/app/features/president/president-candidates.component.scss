@@ -1,0 +1,11 @@
+.candidates mat-card, .candidates mat-card-content {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 4;
+  row-gap: 0;
+  min-width: 0;
+}
+.candidate-header { grid-row: 1; }
+.vote-line { grid-row: 2; }
+.candidates mat-card-content > progress { grid-row: 3; }
+.status { grid-row: 4; }

@@ -1,57 +1,20 @@
-$layout-width: calc(100% - 2rem);
-$layout-max-width: 600px;
-$layout-margin: 2rem auto;
-
-h2 {
-  text-align: center;
-  margin: 2rem !important;
-}
-table {
-  width: $layout-width;
-  max-width: $layout-max-width;
-  margin: $layout-margin;
-  .mat-header-cell {
-    text-align: center;
-    padding: 0 1em;
-  }
-  .mat-cell {
-    padding: 0 1em;
-  }
-  .mat-column-numero,
-  .mat-column-porcentagem,
-  .mat-column-votos {
-    text-align: center;
-  }
-}
-mat-card, footer {
-  width: $layout-width;
-  max-width: $layout-max-width;
-  margin: $layout-margin;
-}
-
-footer {
-  text-align: center;
-}
-
-.row {
-  display: flex;
-  .col-6 {
-    border: 1px solid whitesmoke;
-    width: 48%;
-    margin: 1%;
-  }
-}
-
-.update-button {
-  margin: auto;
-}
-
-@media screen and (max-width:900px) {
-  .row {
-    display: block;
-  }
-  .col-6 {
-    margin-left: 1%;
-    width: 98% !important;
-  }
+:host { display: flex; flex-direction: column; min-height: 100dvh; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem max(1rem, calc((100% - 1600px) / 2)); background: #fff; border-bottom: 1px solid #e2e8f0; }
+.brand img { display: block; width: 170px; max-width: 100%; height: auto; }
+.header p { margin: 0; color: #475569; font-size: .85rem; }
+main { width: min(1600px, 100%); min-width: 0; padding: .5rem 1rem; margin: 0 auto; flex: 1; }
+.scope-controls { display: flex; flex: 1; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: .75rem; }
+.scope-controls mat-form-field { width: min(100%, 240px); }
+.scope-controls p { margin: 0; font-size: .85rem; }
+mat-tab-nav-panel { display: block; padding-top: .5rem; }
+footer { padding: .4rem 1rem; text-align: center; font-size: .75rem; color: #475569; border-top: 1px solid #e2e8f0; }
+footer p { margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 600px) {
+  .header { padding: .75rem; flex-wrap: wrap; }
+  .brand img { width: 150px; }
+  main { padding: .75rem; }
+  .scope-controls { display: grid; flex-basis: 100%; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .scope-controls mat-form-field { width: 100%; }
+  footer { overflow-wrap: anywhere; }
 }

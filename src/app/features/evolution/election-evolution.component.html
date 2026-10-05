@@ -1,0 +1,39 @@
+<section aria-labelledby="evolution-title">
+  <div class="heading"><h3 id="evolution-title">Evolução da apuração</h3>
+    <mat-button-toggle-group aria-label="Candidatos no gráfico" [value]="limit()" (change)="selectLimit($event.value)">
+      <mat-button-toggle value="2">Top 2</mat-button-toggle><mat-button-toggle value="3">Top 3</mat-button-toggle>
+      <mat-button-toggle value="5">Top 5</mat-button-toggle><mat-button-toggle value="all">Todos</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+  <mat-button-toggle-group class="metric" aria-label="Tipo de evolução" [value]="metric()" (change)="selectMetric($event.value)">
+    <mat-button-toggle value="percentage">Percentual</mat-button-toggle><mat-button-toggle value="votes">Votos absolutos</mat-button-toggle>
+  </mat-button-toggle-group>
+  <p>Histórico local deste navegador, registrado ao acompanhar este cargo, turno e recorte. Não recupera etapas anteriores à primeira consulta.</p>
+  @if (context()?.phase === 's') { <p><strong>SIMULADO — não são resultados oficiais.</strong></p> }
+  @if (history.error(); as error) { <p role="status">{{ error }}</p> }
+  @if (loading()) { <p role="status">Carregando histórico local…</p> }
+  @if (!snapshots().length && !loading()) { <p>Nenhum registro local disponível para esta seleção.</p> }
+  @if (latest(); as last) {
+    <p>{{ snapshots().length }} registro(s) · último arquivo TSE: {{ last.generatedDate }} às {{ last.generatedTime }}.</p>
+    @if (!last.disclosureAllowed) { <p>O TSE ainda não autorizou a divulgação da votação deste resultado.</p> }
+    @else if (!chartAvailable()) { <p>Aguardando {{ metric() === 'votes' ? 'votos dos candidatos' : 'percentuais dos candidatos' }} e percentual de seções totalizadas para o gráfico.</p> }
+    @else if (snapshots().length === 1) { <p>Primeiro registro disponível. Os próximos resultados formarão a evolução.</p> }
+  }
+  <div #chart class="chart" [hidden]="!chartAvailable() || chartError()" [attr.aria-label]="metric() === 'votes' ? 'Evolução dos votos acumulados publicados pelo TSE' : 'Evolução dos percentuais publicados pelo TSE'"></div>
+  @if (chartError()) { <p role="status">Não foi possível exibir o gráfico. Consulte os registros na tabela abaixo.</p> }
+  @if (model().candidates.length) {
+    <p class="note">Top definido pela votação no último registro. Percentuais conforme o TSE; correções podem reduzir votos ou totalização. As cores servem apenas para distinguir as linhas.</p>
+    <details (toggle)="showTable.set($any($event.target).open)"><summary>Consultar dados dos registros</summary>
+      @if (showTable()) {
+        <div class="table"><table><caption>Histórico local dos candidatos selecionados</caption>
+          <thead><tr><th scope="col">Arquivo TSE</th><th scope="col">Seções totalizadas</th>@for (candidate of model().candidates; track candidate.id) { <th scope="col">{{ candidate.number }} · {{ candidate.name }}</th> }</tr></thead>
+          <tbody>@for (snapshot of snapshots(); track snapshot.id ?? $index; let index = $index) {
+            <tr><th scope="row">{{ snapshot.generatedDate }} {{ snapshot.generatedTime }}</th><td>{{ snapshot.processedPercentage === null ? '—' : (snapshot.processedPercentage | number:'1.2-2') + '%' }}</td>
+              @for (series of model().series; track series.id) { <td>{{ series.points[index].percentage === null ? '—' : (series.points[index].percentage | number:'1.2-2') + '%' }}<br>{{ series.points[index].votes === null ? '—' : (series.points[index].votes | number) }} votos</td> }
+            </tr>
+          }</tbody>
+        </table></div>
+      }
+    </details>
+  }
+</section>

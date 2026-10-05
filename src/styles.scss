@@ -1,11 +1,21 @@
-body {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
-  background-color: #251B37;
-  color: #FFECEF;
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((color: (primary: mat.$cyan-palette, tertiary: mat.$blue-palette), typography: system-ui, density: 0));
+  color-scheme: light;
 }
 
-// #251B37
-// #372948
-// #FFCACA
-// #FFECEF
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
+p { line-height: 1.6; }
+.cargo-tabs .mat-mdc-tab-link-container { overflow-x: auto; scrollbar-width: thin; }
+.cargo-tabs .mat-mdc-tab-link { flex: 0 0 auto; }
+.result-tabs .mat-mdc-tab { min-width: 0; padding: 0 12px; }
+.result-tabs .mat-mdc-tab-body-content { height: auto; overflow: visible; }
+.result-tabs .mat-mdc-tab-body-wrapper { min-width: 0; }
+mat-paginator .mat-mdc-paginator-container { padding: 0; }
+@media (max-width: 600px) {
+  mat-paginator .mat-mdc-paginator-container { justify-content: center; }
+  mat-paginator .mat-mdc-paginator-range-label { margin: 0 4px; }
+  mat-paginator .mat-mdc-paginator-page-size { margin-right: 0; }
+}

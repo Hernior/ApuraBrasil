@@ -1,0 +1,20 @@
+:host { display: block; margin: 1.5rem 0; }
+section { padding: 1rem; border: 1px solid #cbd5e1; border-radius: .75rem; }
+.heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+h3 { margin: .5rem 0; }
+.metric { margin-top: .75rem; }
+p, summary { line-height: 1.5; }
+.chart { width: 100%; height: 360px; }
+.chart[hidden] { display: none; }
+.note { font-size: .85rem; color: #475569; }
+summary { cursor: pointer; }
+.table { overflow-x: auto; margin-top: 1rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .6rem; text-align: left; border-bottom: 1px solid #cbd5e1; white-space: nowrap; }
+@media (max-width: 480px) { section { padding: .75rem; } .chart { height: 320px; } }
+@media (max-width: 600px) {
+  .heading { display: block; }
+  mat-button-toggle-group { display: flex; width: 100%; }
+  mat-button-toggle { flex: 1; min-width: 0; }
+  .table { max-width: 100%; }
+}

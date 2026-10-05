@@ -1,95 +1,29 @@
-<div class="row">
-  <div class="col-6">
-    <h2>Apuração Eleitoral para Presidente (2022)</h2>
-    <table mat-table [dataSource]="dadosPresidente" class="mat-elevation-z8" *ngIf="dadosPresidente.length > 0; else: noData">
-      <ng-container matColumnDef="nome">
-        <th mat-header-cell *matHeaderCellDef> Nome </th>
-        <td mat-cell *matCellDef="let element"> {{element.nm}} </td>
-      </ng-container>
-
-      <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef> Nº </th>
-        <td mat-cell *matCellDef="let element"> {{element.n}} </td>
-      </ng-container>
-
-      <ng-container matColumnDef="porcentagem" class="centered">
-        <th mat-header-cell *matHeaderCellDef> Porcentagem </th>
-        <td mat-cell *matCellDef="let element"> {{element.pvap}}% </td>
-      </ng-container>
-
-      <ng-container matColumnDef="votos">
-        <th mat-header-cell *matHeaderCellDef> Votos </th>
-        <td mat-cell *matCellDef="let element"> {{element.vap | number}} </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="TabelaColunas"></tr>
-      <tr mat-row *matRowDef="let row; columns: TabelaColunas;"></tr>
-    </table>
-    <ng-template #noData>
-      <mat-card>
-        <mat-card-title>Sem dados</mat-card-title>
-        <mat-card-subtitle>Dados do TSE inacessíveis no momento.</mat-card-subtitle>
-        <mat-card-actions>
-          <button mat-button color="accent" (click)="loadPresidente()">Recarregar dados para Presidente</button>
-        </mat-card-actions>
-      </mat-card>
-    </ng-template>
-
-    <footer *ngIf="porcentagemTotal">
-      <p>{{ porcentagemTotal }}% das seções totalizadas.</p>
-      <p>Horário da atualização: {{ horaAtualizacao }}</p>
-      <p>Votos válidos: {{ votosValidos | number }} - {{ votosValidosPorcentagem }}%</p>
-      <p>Votos em branco: {{ votosBranco | number }} - {{ votosBrancoPorcentagem }}%</p>
-      <p>Votos anulados: {{ votosNulo | number }} - {{ votosNuloPorcentagem }}%</p>
-    </footer>
+<header class="header">
+  <a class="brand" routerLink="/" aria-label="ApuraBrasil — página inicial"><img src="assets/logo.svg" [alt]="title()" width="1200" height="320"></a>
+  <p>Eleições Gerais · 2026</p>
+  <div class="scope-controls">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>UF Eleição Federal</mat-label><mat-select [value]="navigation.federalFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectFederalUf($event.value)"><mat-option value="">Brasil inteiro</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>UF Eleição Estadual</mat-label><mat-select [value]="navigation.stateFilter().uf" [disabled]="navigation.loading()" (selectionChange)="navigation.selectStateUf($event.value)"><mat-option value="">Selecione uma UF</mat-option>@for (uf of navigation.states(); track uf) { <mat-option [value]="uf">{{ uf.toUpperCase() }}</mat-option> }</mat-select></mat-form-field>
+    @if (!navigation.hasStateUf()) { <p>Selecione uma UF na eleição estadual para habilitar as abas estaduais.</p> }
+    @if (navigation.loading()) { <p role="status">Carregando UFs…</p> }
+    @if (navigation.error(); as error) { <p role="alert">{{ error }}</p><button matButton="outlined" (click)="navigation.retry()">Recarregar UFs</button> }
   </div>
-  <div class="col-6">
-
-    <h2>Apuração Eleitoral para Governador (2022)</h2>
-    
-    <table mat-table [dataSource]="dadosGovernador" class="mat-elevation-z8" *ngIf="dadosGovernador.length > 0; else: noDataGovernador">
-      <ng-container matColumnDef="nome">
-        <th mat-header-cell *matHeaderCellDef> Nome </th>
-        <td mat-cell *matCellDef="let element"> {{element.nm}} </td>
-      </ng-container>
-    
-      <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef> Nº </th>
-        <td mat-cell *matCellDef="let element"> {{element.n}} </td>
-      </ng-container>
-    
-      <ng-container matColumnDef="porcentagem" class="centered">
-        <th mat-header-cell *matHeaderCellDef> Porcentagem </th>
-        <td mat-cell *matCellDef="let element"> {{element.pvap}}% </td>
-      </ng-container>
-    
-      <ng-container matColumnDef="votos">
-        <th mat-header-cell *matHeaderCellDef> Votos </th>
-        <td mat-cell *matCellDef="let element"> {{element.vap | number}} </td>
-      </ng-container>
-    
-      <tr mat-header-row *matHeaderRowDef="TabelaColunas"></tr>
-      <tr mat-row *matRowDef="let row; columns: TabelaColunas;"></tr>
-    </table>
-    <ng-template #noDataGovernador>
-      <mat-card>
-        <mat-card-title>Sem dados</mat-card-title>
-        <mat-card-subtitle>Dados do TSE inacessíveis no momento.</mat-card-subtitle>
-        <mat-card-actions>
-          <button mat-button color="accent" (click)="loadGovernador()">Recarregar dados para Governador</button>
-        </mat-card-actions>
-      </mat-card>
-    </ng-template>
-    
-    <footer *ngIf="GovernadorPorcentagemTotal">
-      <p>{{ GovernadorPorcentagemTotal }}% das seções totalizadas.</p>
-      <p>Horário da atualização: {{ GovernadorHoraAtualizacao }}</p>
-      <p>Votos válidos: {{ GovernadorVotosValidos | number }} - {{ GovernadorVotosValidosPorcentagem }}%</p>
-      <p>Votos em branco: {{ GovernadorVotosBranco | number }} - {{ GovernadorVotosBrancoPorcentagem }}%</p>
-      <p>Votos anulados: {{ GovernadorVotosNulo | number }} - {{ GovernadorVotosNuloPorcentagem }}%</p>
-    </footer>
+</header>
+<main>
+  <h1 class="sr-only">ApuraBrasil · Eleições Gerais de 2026</h1>
+  <div class="configuration-status" aria-live="polite">
+    @if (elections.loading()) { <p>Consultando a configuração oficial do TSE…</p> }
+    @if (elections.error(); as error) { <p role="alert">{{ error }}</p><button matButton="outlined" [disabled]="elections.loading()" (click)="elections.load()">Tentar novamente</button> }
+    @if (!elections.loading() && elections.configuration() && !elections.elections().length) { <p>Nenhuma eleição geral federal ou estadual do ciclo de 2026 está disponível nesta configuração.</p> }
+    @if (elections.configuration()?.phase === 's') { <p><strong>Ambiente de simulado — não são resultados oficiais.</strong></p> }
   </div>
-</div>
-<div class="row">
-  <button class="update-button" mat-flat-button color="accent" (click)="loadAll()">ATUALIZAR DADOS</button>
-</div>
+  <nav class="cargo-tabs" mat-tab-nav-bar [disablePagination]="true" [tabPanel]="cargoPanel" aria-label="Cargos">
+    @for (tab of navigation.tabs; track tab.id) {
+      <a mat-tab-link [disabled]="navigation.disabled(tab.id)" [active]="navigation.office() === tab.id" [routerLink]="navigation.disabled(tab.id) ? null : navigation.link(tab.id)">{{ tab.label }}</a>
+    }
+  </nav>
+  <mat-tab-nav-panel #cargoPanel><router-outlet /></mat-tab-nav-panel>
+</main>
+<footer>
+  <p>Fonte: Tribunal Superior Eleitoral (TSE) · ApuraBrasil é um projeto independente, sem vínculo oficial com o TSE.</p>
+</footer>

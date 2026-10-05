@@ -6,7 +6,7 @@ SPA estática para acompanhamento das Eleições Gerais de 2026. O projeto não 
 
 Base migrada para Angular 20, standalone, Signals, TypeScript strict, SCSS e Angular Material 20. A descoberta das eleições gerais de 2026 consulta o EA11 oficial diretamente do navegador. O painel de Presidente nacional e por UF consulta o EA20 oficial, com atualização manual e automática orientada pelo EA14; não há resultados fictícios.
 
-Presidente, Governador, Senador, Deputado Federal e Deputado Estadual/Distrital incluem resultados por UF e município. Os deputados calculam a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. As cinco abas incluem histórico local e gráfico de evolução percentual. PWA e workflow de publicação serão implementados em entregas posteriores; mapas ficam como melhoria futura.
+Presidente, Governador, Senador, Deputado Federal e Deputado Estadual/Distrital incluem resultados por UF e município. Os deputados calculam a distribuição de vagas estadual, com indicação provisória durante a apuração e situação oficial separada. As cinco abas incluem histórico local e gráfico de evolução percentual ou de votos absolutos. PWA e workflow de publicação serão implementados em entregas posteriores; mapas ficam como melhoria futura.
 
 ## Requisitos e execução
 
@@ -232,6 +232,7 @@ Em 04/10/2026, uma verificação separada em ChromeHeadless abriu AL/Maceió (ca
 - Para Deputado Federal, Estadual e Distrital, a prova antecipada cobre vagas garantidas por QP: utiliza o maior QE possível, o mínimo garantido de vagas do partido/federação, a exigência nominal de 10% e todos os concorrentes que ainda possam alcançar o candidato dentro do agrupamento. Vagas por sobras continuam provisórias até a totalização/cálculo final ou até não restarem eleitores pendentes, com dados suficientes. As confirmações matemáticas consideram a destinação e elegibilidade atuais; correções de votos e decisões judiciais podem exigir revisão.
 - Nos recortes locais de Presidente, consulta-se também o EA20 nacional e inclui-se seu acompanhamento na assinatura. Nos municípios de Governador, consulta-se também o resultado/acompanhamento da UF. O polling exige sincronização dos arquivos agregados; 429 e cancelamento seguem o tratamento compartilhado existente. Votos dos cards e do histórico continuam sendo os do recorte selecionado.
 - O catálogo **Eleições disponíveis** foi removido. Permanecem os estados essenciais de carregamento, erro com nova tentativa, ausência de eleições e simulado. Em telas de até 600 px, os filtros e ações ocupam a largura disponível, as abas têm rolagem horizontal e os candidatos usam uma coluna. Tabelas mantêm rolagem própria; nomes longos quebram dentro do card.
+- As fotos usam uma borda cinza de 1 px com a mesma cor do card padrão, respeitando os tokens do tema. A borda da foto continua cinza quando o candidato recebe destaque verde.
 - Testes específicos verificam limites estritos, segundo turno, cargos, abrangência nacional/estadual, dados insuficientes, todas as distribuições de três votos pendentes em um cenário proporcional, sincronização, chips, compartilhamento e CSS em viewports de 320, 375, 600, 768 e 1280 px em ChromeHeadless. Essa validação não equivale a testes manuais em aparelhos físicos.
 
 ## Histórico local e evolução percentual
@@ -243,17 +244,25 @@ Em 04/10/2026, uma verificação separada em ChromeHeadless abriu AL/Maceió (ca
 - O módulo de gráfico é carregado sob demanda, com renderização SVG, ajuste de tamanho e liberação ao sair do painel, conforme a [documentação do Apache ECharts](https://echarts.apache.org/handbook/en/basics/import/). Falhas ou bloqueios de armazenamento local mostram aviso e preservam a apuração atual. Limpar os dados do navegador remove o histórico. Não há limpeza automática nesta entrega.
 - Testes específicos verificam persistência real em IndexedDB, deduplicação concorrente, isolamento, correções, divulgação, respostas antigas, filtros e renderização do gráfico em ChromeHeadless. Não consultam o TSE e usam banco local de teste separado.
 
-### Entregas restantes após histórico e evolução percentual
+## Evolução dos votos absolutos
 
-Estimativa atual: 7 entregas funcionais, sujeitas a divisão em etapas menores:
+- Nos dois modos, o eixo horizontal acompanha o menor e o maior percentual de seções totalizadas do histórico selecionado, com margem de 10% do intervalo (mínimo de 0,1 ponto percentual), limitada a 0–100%. Registros com percentual igual continuam visíveis em uma faixa útil, sem alterar os dados. Sem percentuais conhecidos, usa-se a faixa completa.
 
-1. Evolução de votos absolutos.
-2. Comparação entre candidatos.
-3. Busca global.
-4. Modo TV.
-5. PWA.
-6. Deploy automático no GitHub Pages.
-7. Dashboard nacional e agregação regional.
+- O seletor **Percentual / Votos absolutos** alterna o gráfico da aba aberta. Mantém os mesmos candidatos e a seleção **Top 2/3/5/Todos**, com as mesmas cores por candidato. Não consulta novamente o TSE, não recarrega o histórico para alternar a métrica e não altera o schema do IndexedDB.
+- Em **Votos absolutos**, o eixo X continua sendo o percentual de seções totalizadas e o eixo Y usa os votos acumulados publicados em cada registro, com escala automática e intervalos inteiros. Rótulos do eixo usam abreviações para números grandes; o tooltip e a tabela preservam os valores completos. Não se somam registros sucessivos, pois cada resultado já contém a votação acumulada.
+- Dados ausentes não viram zero, zeros reais são preservados e correções podem reduzir a curva. Votos conhecidos podem ser exibidos mesmo quando o percentual do candidato ainda não está disponível. Continua sendo necessário conhecer o percentual de seções para posicionar o ponto no eixo X; votação não autorizada permanece oculta.
+- Testes específicos verificam a alternância do SVG renderizado, manutenção da seleção, ausência de novas leituras ao alternar, valores acima de 100 votos, correções, zeros e campos ausentes. O seletor usa Angular Material e se adapta à largura do celular.
+
+### Entregas restantes após evolução dos votos absolutos
+
+Estimativa atual: 6 entregas funcionais, sujeitas a divisão em etapas menores:
+
+1. Comparação entre candidatos.
+2. Busca global.
+3. Modo TV.
+4. PWA.
+5. Deploy automático no GitHub Pages.
+6. Dashboard nacional e agregação regional.
 
 Mapas oficiais do IBGE (Brasil e municípios) ficam como melhoria futura, fora desta sequência.
 

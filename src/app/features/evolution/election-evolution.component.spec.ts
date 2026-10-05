@@ -69,4 +69,28 @@ describe('Election evolution panel', () => {
     expect(fixture.nativeElement.querySelector('.chart').hidden).toBeTrue();
     expect(fixture.nativeElement.querySelector('details')).toBeNull();
   });
+  it('switches the rendered chart to absolute votes and back without reading history or changing the selected candidates', async () => {
+    read.and.resolveTo([snapshot()]); await settle();
+    const element: HTMLElement = fixture.nativeElement;
+    const reads = read.calls.count();
+    fixture.componentInstance.selectLimit('5'); await settle();
+    const selected = fixture.componentInstance.model().candidates.map(candidate => candidate.id);
+    Array.from(element.querySelectorAll('.metric button')).find(button => button.textContent?.trim() === 'Votos absolutos')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await settle();
+    expect(fixture.componentInstance.metric()).toBe('votes');
+    expect(element.querySelector('.chart')!.textContent).toContain('Votos acumulados');
+    expect(element.querySelector('.chart')!.textContent).not.toContain('Percentual TSE (%)');
+    expect(fixture.componentInstance.limit()).toBe('5'); expect(fixture.componentInstance.model().candidates.map(candidate => candidate.id)).toEqual(selected);
+    Array.from(element.querySelectorAll('.metric button')).find(button => button.textContent?.trim() === 'Percentual')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await settle();
+    expect(element.querySelector('.chart')!.textContent).toContain('Percentual TSE (%)'); expect(read.calls.count()).toBe(reads);
+  });
+  it('shows known absolute votes even when the official candidate percentage is missing', async () => {
+    const value = snapshot(); value.candidates = value.candidates.map(candidate => ({ ...candidate, percentage: null }));
+    read.and.resolveTo([value]); await settle();
+    expect(fixture.componentInstance.chartAvailable()).toBeFalse();
+    fixture.componentInstance.selectMetric('votes'); await settle();
+    expect(fixture.componentInstance.chartAvailable()).toBeTrue(); expect(fixture.nativeElement.querySelector('.chart svg')).not.toBeNull();
+    fixture.componentInstance.selectMetric('percentage'); await settle(); expect(fixture.componentInstance.chartAvailable()).toBeFalse();
+  });
 });

@@ -32,6 +32,8 @@ describe('Clean responsive election layout', () => {
     data.carg[0]!.agr[0]!.par[0]!.cand.forEach(candidate => { candidate.st = ''; });
     const result = parsePresidentEA20(data, '42', 1);
     result.candidates[0]!.name = 'NomeExtremamenteLongoSemEspaçosParaVerificarQuebraNoDispositivoMóvel';
+    result.candidates[0]!.photoUrl = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='64'%20height='80'%3E%3C/svg%3E";
+    result.candidates.push({ ...result.candidates[1]!, id: '999', elected: false, votes: 1 });
     TestBed.inject(PresidentStore).result.set(result);
     app.detectChanges(); panel.detectChanges(); await app.whenStable(); await panel.whenStable(); app.detectChanges(); panel.detectChanges();
     const root: HTMLElement = app.nativeElement;
@@ -50,6 +52,10 @@ describe('Clean responsive election layout', () => {
     expect(chip.textContent).toContain('ELEITO · TSE'); expect(chip.title).toContain('TSE');
     expect(getComputedStyle(chip).getPropertyValue('--mdc-chip-elevated-container-color').trim()).toBe('#15803d');
     expect(getComputedStyle(root.querySelector('.candidates .elected')!).borderTopColor).toBe('rgb(22, 163, 74)');
+    const photo = root.querySelector('.photo')!;
+    const neutral = root.querySelector('.candidates mat-card:not(.elected):not(.highlight)')!;
+    expect(getComputedStyle(photo).borderTopWidth).toBe('1px');
+    expect(getComputedStyle(photo).borderTopColor).toBe(getComputedStyle(neutral).borderTopColor);
   });
   it('fits actual CSS viewports at 320, 375, 600, 768 and 1280px, with mobile filters, scrollable tabs and one card column', async () => {
     const { root } = await setup();

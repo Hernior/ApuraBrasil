@@ -1,7 +1,7 @@
 .confirmed-status { --mdc-chip-elevated-container-color: #15803d; --mdc-chip-label-text-color: #fff; --mdc-chip-outline-color: #15803d; font-weight: 700; }
 .elected { border-color: #16a34a; }
 .candidate-header > div { min-width: 0; overflow-wrap: anywhere; }
-.photo { flex-shrink: 0; }
+.photo { flex-shrink: 0; border: 1px solid var(--mat-card-outlined-outline-color, var(--mat-sys-outline-variant, #cbd5e1)); }
 @media (max-width: 600px) {
   .toolbar { gap: .75rem; }
   .toolbar > div { flex-basis: 100%; min-width: 0; }

@@ -4,7 +4,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import type { EChartsType } from 'echarts/core';
 import { ElectionHistoryContext, ElectionSnapshot, historyContextKey } from '../../core/models/election-snapshot.model';
 import { ElectionHistoryService } from '../../core/services/election-history.service';
-import { buildEvolutionModel, EvolutionLimit } from './evolution-model';
+import { buildEvolutionModel, EvolutionLimit, EvolutionMetric } from './evolution-model';
 
 @Component({
   selector: 'app-election-evolution',
@@ -21,9 +21,10 @@ export class ElectionEvolutionComponent implements OnDestroy {
   readonly chartError = signal(false);
   readonly showTable = signal(false);
   readonly limit = signal<EvolutionLimit>('2');
+  readonly metric = signal<EvolutionMetric>('percentage');
   readonly model = computed(() => buildEvolutionModel(this.snapshots(), this.limit()));
   readonly latest = computed(() => this.snapshots().at(-1));
-  readonly chartAvailable = computed(() => this.model().series.some(series => series.points.some(point => point.processedPercentage !== null && point.percentage !== null)));
+  readonly chartAvailable = computed(() => this.model().series.some(series => series.points.some(point => point.processedPercentage !== null && (this.metric() === 'votes' ? point.votes : point.percentage) !== null)));
   private readonly element = viewChild<ElementRef<HTMLElement>>('chart');
   private readonly zone = inject(NgZone);
   private chart: EChartsType | null = null;
@@ -43,7 +44,8 @@ export class ElectionEvolutionComponent implements OnDestroy {
       const element = this.element()?.nativeElement;
       const model = this.model();
       const available = this.chartAvailable();
-      untracked(() => { void this.render(element, model, available); });
+      const metric = this.metric();
+      untracked(() => { void this.render(element, model, available, metric); });
     });
   }
 
@@ -56,7 +58,7 @@ export class ElectionEvolutionComponent implements OnDestroy {
     if (!this.destroyed && request === this.readRequest) { this.snapshots.set(snapshots); this.loading.set(false); }
   }
 
-  private async render(element: HTMLElement | undefined, model: ReturnType<typeof buildEvolutionModel>, available: boolean): Promise<void> {
+  private async render(element: HTMLElement | undefined, model: ReturnType<typeof buildEvolutionModel>, available: boolean, metric: EvolutionMetric): Promise<void> {
     const request = ++this.renderRequest;
     if (!element || !available) { this.chart?.clear(); return; }
     try {
@@ -69,7 +71,7 @@ export class ElectionEvolutionComponent implements OnDestroy {
           this.observer.observe(element);
         }
         this.chart.resize();
-        this.chart.setOption(renderer.evolutionOptions(model), { notMerge: true });
+        this.chart.setOption(renderer.evolutionOptions(model, metric), { notMerge: true });
       });
       this.chartError.set(false);
     } catch {
@@ -78,5 +80,6 @@ export class ElectionEvolutionComponent implements OnDestroy {
   }
 
   selectLimit(value: EvolutionLimit): void { this.limit.set(value); }
+  selectMetric(value: EvolutionMetric): void { this.metric.set(value); }
   ngOnDestroy(): void { this.destroyed = true; this.observer?.disconnect(); this.chart?.dispose(); }
 }

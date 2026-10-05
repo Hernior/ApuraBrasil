@@ -5,6 +5,9 @@
       <mat-button-toggle value="5">Top 5</mat-button-toggle><mat-button-toggle value="all">Todos</mat-button-toggle>
     </mat-button-toggle-group>
   </div>
+  <mat-button-toggle-group class="metric" aria-label="Tipo de evolução" [value]="metric()" (change)="selectMetric($event.value)">
+    <mat-button-toggle value="percentage">Percentual</mat-button-toggle><mat-button-toggle value="votes">Votos absolutos</mat-button-toggle>
+  </mat-button-toggle-group>
   <p>Histórico local deste navegador, registrado ao acompanhar este cargo, turno e recorte. Não recupera etapas anteriores à primeira consulta.</p>
   @if (context()?.phase === 's') { <p><strong>SIMULADO — não são resultados oficiais.</strong></p> }
   @if (history.error(); as error) { <p role="status">{{ error }}</p> }
@@ -13,10 +16,10 @@
   @if (latest(); as last) {
     <p>{{ snapshots().length }} registro(s) · último arquivo TSE: {{ last.generatedDate }} às {{ last.generatedTime }}.</p>
     @if (!last.disclosureAllowed) { <p>O TSE ainda não autorizou a divulgação da votação deste resultado.</p> }
-    @else if (!chartAvailable()) { <p>Aguardando percentuais de candidatos e de seções totalizadas para o gráfico.</p> }
+    @else if (!chartAvailable()) { <p>Aguardando {{ metric() === 'votes' ? 'votos dos candidatos' : 'percentuais dos candidatos' }} e percentual de seções totalizadas para o gráfico.</p> }
     @else if (snapshots().length === 1) { <p>Primeiro registro disponível. Os próximos resultados formarão a evolução.</p> }
   }
-  <div #chart class="chart" [hidden]="!chartAvailable() || chartError()" aria-label="Evolução dos percentuais publicados pelo TSE"></div>
+  <div #chart class="chart" [hidden]="!chartAvailable() || chartError()" [attr.aria-label]="metric() === 'votes' ? 'Evolução dos votos acumulados publicados pelo TSE' : 'Evolução dos percentuais publicados pelo TSE'"></div>
   @if (chartError()) { <p role="status">Não foi possível exibir o gráfico. Consulte os registros na tabela abaixo.</p> }
   @if (model().candidates.length) {
     <p class="note">Top definido pela votação no último registro. Percentuais conforme o TSE; correções podem reduzir votos ou totalização. As cores servem apenas para distinguir as linhas.</p>

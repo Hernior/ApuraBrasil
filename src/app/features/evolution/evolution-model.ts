@@ -1,6 +1,7 @@
 import { ElectionSnapshot } from '../../core/models/election-snapshot.model';
 
 export type EvolutionLimit = '2' | '3' | '5' | 'all';
+export type EvolutionMetric = 'percentage' | 'votes';
 
 export function buildEvolutionModel(snapshots: ElectionSnapshot[], limit: EvolutionLimit) {
   const latest = snapshots.at(-1);

@@ -38,7 +38,7 @@ function candidatePaginatorLabels(): MatPaginatorIntl {
   imports: [DecimalPipe, MatButtonModule, MatCardModule, MatChipsModule, MatTabsModule, MatPaginatorModule, ElectionEvolutionComponent],
   providers: [{ provide: MatPaginatorIntl, useFactory: candidatePaginatorLabels }],
   templateUrl: './president.component.html',
-  styleUrls: ['./president.component.scss', './president-responsive.component.scss', './president-dashboard.component.scss'],
+  styleUrls: ['./president.component.scss', './president-responsive.component.scss', './president-dashboard.component.scss', './president-candidates.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PresidentComponent implements OnDestroy {

@@ -108,6 +108,30 @@ describe('Clean responsive election layout', () => {
     TestBed.inject(PresidentStore).result.set({ ...changed, disclosureAllowed: false }); panel.detectChanges();
     expect(root.querySelector('.destination-status')).toBeNull();
   });
+  it('aligns percentages and bars within each row despite missing federation, photos and multiline names', async () => {
+    const { panel, root } = await setup();
+    const result = TestBed.inject(PresidentStore).result()!;
+    panel.componentInstance.pageSize.set(6);
+    TestBed.inject(PresidentStore).result.set({ ...result, mathematicallyDefined: null, candidates: Array.from({ length: 6 }, (_, i) => ({
+      ...result.candidates[0]!, id: `${i}`, name: i % 3 === 0 ? 'Nome de candidato com várias palavras para ocupar mais de uma linha no cabeçalho' : `Candidato ${i}`,
+      federation: i % 3 === 1 ? null : 'Partido A / Partido B / Partido C', photoUrl: i % 3 === 2 ? null : result.candidates[0]!.photoUrl,
+      elected: false, status: i % 3 === 0 ? 'Não eleito' : null
+    })) }); panel.detectChanges();
+    const cards = Array.from(root.querySelectorAll('.candidates mat-card'));
+    const rows = new Map<number, Element[]>();
+    for (const card of cards) {
+      const top = card.getBoundingClientRect().top;
+      rows.set(top, [...(rows.get(top) ?? []), card]);
+    }
+    expect([...rows.values()].some(row => row.length > 1)).toBeTrue();
+    for (const row of rows.values()) {
+      const percentages = row.map(card => card.querySelector('.vote-line strong')!.getBoundingClientRect().top);
+      const bars = row.map(card => card.querySelector('progress')!.getBoundingClientRect().top);
+      expect(Math.max(...percentages) - Math.min(...percentages)).toBeLessThan(1);
+      expect(Math.max(...bars) - Math.min(...bars)).toBeLessThan(1);
+    }
+    expect(cards[1]!.textContent).not.toContain('Federação:');
+  });
   it('fits actual CSS viewports at 320, 375, 600, 768 and 1280px, with mobile filters, scrollable tabs and one card column', async () => {
     const { root } = await setup();
     const styles = Array.from(document.querySelectorAll('style')).map(style => style.textContent).join('\n');

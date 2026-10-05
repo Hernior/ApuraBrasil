@@ -15,6 +15,7 @@
       </label>
       <label class="election-select"><span>Atualização</span><select [value]="polling.interval()" (change)="selectInterval($event)"><option value="15000">15 segundos</option><option value="30000">30 segundos</option><option value="60000">60 segundos</option><option value="0">Manual</option></select></label>
       <button matButton="outlined" [disabled]="polling.checking() || municipalitiesLoading()" (click)="refresh()">Atualizar {{ officeName() }}</button>
+      <button matButton="filled" [disabled]="!shareableResult()" (click)="share()">Compartilhar</button>
     }
   </div>
   <div aria-live="polite" [attr.aria-busy]="polling.checking()">

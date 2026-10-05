@@ -7,6 +7,9 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
+import { buildElectionShareSummary } from './share-election-summary';
+import { ShareResultDialogComponent } from './share-result-dialog.component';
 import { ElectionStore } from '../../core/state/election.store';
 import { PresidentStore } from '../../core/state/president.store';
 import { ELECTION_DATA_PROVIDER } from '../../core/api/election-data-provider';
@@ -25,6 +28,7 @@ import { senatorProjection } from '../../core/services/senator-projection';
 export class PresidentComponent implements OnDestroy {
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
+  private readonly dialog = inject(MatDialog);
   private readonly params = toSignal(this.route?.paramMap ?? of(convertToParamMap({})));
   private readonly routeData = toSignal(this.route?.data ?? of<Data>({}));
   readonly governor = computed(() => this.routeData()?.['office'] === 'governor');
@@ -72,6 +76,33 @@ export class PresidentComponent implements OnDestroy {
       (this.stateOffice() ? s.code === 'br' || this.scope() === 'br' || s.code === this.scope() : s.code === 'br') &&
       s.offices.some(o => Number(o.code) === Number(this.officeCode())))));
   readonly selected = computed(() => this.available().find(e => e.id === this.selectedId()) ?? this.available()[0] ?? null);
+  readonly shareableResult = computed(() => {
+    const result = this.president.result();
+    const scope = this.municipalityCode() ? `${this.scope()}/${this.municipalityCode()}` : this.scope();
+    return result && result.electionId === this.selected()?.id && result.scopeCode === scope &&
+      (result.officeCode ?? '1') === this.officeCode() ? result : null;
+  });
+
+  share(): void {
+    const result = this.shareableResult();
+    if (!result) return;
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = this.router?.url ?? url.hash;
+    const location = this.scope() === 'br' ? 'Brasil · incluindo o exterior' : this.municipalityCode()
+      ? `${this.municipality()?.name ?? this.municipalityCode()} · ${this.scope().toUpperCase()}` : `Toda a UF · ${this.scope().toUpperCase()}`;
+    const text = buildElectionShareSummary({
+      result, officeName: this.officeName(), location, url: url.href,
+      officialStatus: candidate => this.officialStatus(candidate.id, candidate.status),
+      calculatedStatus: candidate => this.proportional() && this.calculatedWinners().has(candidate.id)
+        ? this.allocation()?.final ? 'Eleito pelo cálculo de vagas da UF' : 'Provisoriamente na faixa de eleição da UF'
+        : this.senator() && this.candidateAppearance(candidate.id, candidate.status) === 'provisional'
+          ? 'Provisoriamente na faixa de eleição da UF' : '',
+      notice: this.president.error() ? 'Últimos dados recebidos: a atualização falhou.'
+        : this.polling.suspended() ? 'Atualização pausada; confira o horário do arquivo.' : undefined
+    });
+    this.dialog.open(ShareResultDialogComponent, { data: text, width: '640px', maxWidth: 'calc(100vw - 32px)' });
+  }
 
   constructor() {
     effect(() => {

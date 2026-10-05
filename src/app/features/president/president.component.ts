@@ -82,6 +82,10 @@ export class PresidentComponent implements OnDestroy {
   officialStatus(id: string, localStatus: string | null): string {
     return (this.decisionAuthority() ? this.statewideCandidates().get(id)?.status : this.scope() === 'br' ? localStatus : null) || 'Ainda não informada pelo TSE';
   }
+  showOfficialStatus(id: string, status: string | null): boolean {
+    const decision = this.decisions().get(id);
+    return !(decision?.label === 'ELEITO' && decision.source === 'TSE' && /^eleit[oa](?:$|\s+por\s)/i.test(this.officialStatus(id, status).trim()));
+  }
   candidateAppearance(id: string, status: string | null): 'elected' | 'second-round' | 'not-elected' | 'provisional' | '' {
     const calculated = this.proportional() && this.calculatedWinners().has(id);
     const decision = this.decisions().get(id);

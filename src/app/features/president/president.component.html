@@ -81,8 +81,8 @@
               }
               <div class="status"><mat-chip-set [attr.aria-label]="'Situação de ' + candidate.name">
                 @if (result.disclosureAllowed && candidate.voteDestination && candidate.voteDestination.trim().toLowerCase() !== 'válido') { <mat-chip class="destination-status"><span>Destinação: {{ candidate.voteDestination }}</span></mat-chip> }
-                @if (decisions().get(candidate.id); as decision) { <mat-chip class="confirmed-status" [attr.title]="decision.source + ': ' + decision.explanation" [attr.aria-label]="decision.label + ' — ' + decision.source + ': ' + decision.explanation"><span>{{ decision.label }} · {{ decision.source }}</span></mat-chip> }
-                <mat-chip class="official-status"><span>TSE: {{ officialStatus(candidate.id, candidate.status) }}</span></mat-chip>
+                @if (decisions().get(candidate.id); as decision) { <mat-chip class="confirmed-status" [attr.title]="decision.source + ': ' + decision.explanation + ' Situação TSE: ' + officialStatus(candidate.id, candidate.status)" [aria-label]="decision.label + ' — ' + decision.source + ': ' + decision.explanation + ' Situação TSE: ' + officialStatus(candidate.id, candidate.status)"><span>{{ decision.label }} · {{ decision.source }}</span></mat-chip> }
+                @if (showOfficialStatus(candidate.id, candidate.status)) { <mat-chip class="official-status"><span>TSE: {{ officialStatus(candidate.id, candidate.status) }}</span></mat-chip> }
                 @if (proportional() && calculatedWinners().has(candidate.id) && !decisions().has(candidate.id)) { <mat-chip class="calculated-status"><span>{{ allocation()?.final ? 'Eleito pelo cálculo' : 'Provisoriamente na faixa de eleição' }}</span></mat-chip> }
                 @if (senator() && candidateAppearance(candidate.id, candidate.status) === 'provisional') { <mat-chip class="calculated-status"><span>Provisoriamente na faixa de eleição</span></mat-chip> }
               </mat-chip-set></div>

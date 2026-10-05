@@ -55,6 +55,7 @@ describe('Clean responsive election layout', () => {
     const chip = root.querySelector<HTMLElement>('.confirmed-status')!;
     expect(chip.textContent).toContain('ELEITO · TSE'); expect(chip.title).toContain('TSE');
     expect(getComputedStyle(chip).backgroundColor).toBe('rgb(22, 163, 74)');
+    expect(chip.closest('mat-card')!.querySelector('.official-status')!.textContent).toContain('Ainda não informada');
     expect(getComputedStyle(root.querySelector('.candidates .elected')!).borderTopColor).toBe('rgb(22, 163, 74)');
     const photo = root.querySelector('.photo')!;
     const neutral = root.querySelector('.candidates mat-card:not(.elected):not(.highlight)')!;
@@ -84,6 +85,11 @@ describe('Clean responsive election layout', () => {
         expect(getComputedStyle(chip.querySelector('.mat-mdc-chip-action-label')!).color).toBe('rgb(15, 23, 42)');
       }
       expect(card.classList.contains('highlight')).toBeFalse();
+      if (appearance === 'elected') {
+        expect(card.querySelector('.official-status')).toBeNull();
+        expect(card.querySelectorAll('mat-chip').length).toBe(1);
+        expect(card.querySelector('.confirmed-status')!.getAttribute('aria-label')).toContain('Situação TSE: Eleito');
+      }
     }
     expect(neutral.querySelector('.official-status')!.textContent).toContain('Ainda não informada');
   });
